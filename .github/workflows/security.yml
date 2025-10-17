@@ -1,0 +1,236 @@
+name: Security Audit
+
+on:
+  schedule:
+    # Run security audit every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  RUST_VERSION: '1.81'
+
+jobs:
+  rust-security:
+    name: Rust Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-security-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --version 0.21.1 --locked
+
+      - name: Run Rust security audit
+        run: cargo audit
+
+      - name: Check for known security issues
+        run: cargo audit --deny warnings
+
+      - name: Generate security report
+        run: |
+          echo "# Rust Security Audit Report" > security-report.md
+          echo "Generated on: $(date)" >> security-report.md
+          echo "" >> security-report.md
+          cargo audit --format json > audit-results.json || true
+          if [ -s audit-results.json ]; then
+            echo "## Security Issues Found" >> security-report.md
+            cat audit-results.json >> security-report.md
+          else
+            echo "## No Security Issues Found ✅" >> security-report.md
+          fi
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-security-report
+          path: |
+            security-report.md
+            audit-results.json
+          retention-days: 30
+
+  dependency-check:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-security-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run npm security audit
+        run: yarn audit --level moderate || true
+
+      - name: Check for high/critical vulnerabilities
+        run: |
+          AUDIT_RESULT=$(yarn audit --level high --json | jq '.data.vulnerabilities | length' 2>/dev/null || echo "0")
+          if [ "$AUDIT_RESULT" -gt 0 ]; then
+            echo "❌ Found $AUDIT_RESULT high/critical vulnerabilities"
+            yarn audit --level high
+            exit 1
+          else
+            echo "✅ No high/critical vulnerabilities found"
+          fi
+
+  vulnerability-scan:
+    name: Vulnerability Scanner
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Trivy config scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Install cargo-license
+        run: cargo install cargo-license --version 0.6.1 --locked
+
+      - name: Check Rust license compliance
+        run: |
+          echo "# License Report" > license-report.md
+          echo "Generated on: $(date)" >> license-report.md
+          echo "" >> license-report.md
+          echo "## Rust Dependencies" >> license-report.md
+          cargo license --json | jq -r '.[] | "- \(.name) (\(.version)): \(.license)"' >> license-report.md
+
+      - name: Setup Node.js for license check
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install license-checker
+        run: npm install -g license-checker yarn
+
+      - name: Install JavaScript dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Check JavaScript license compliance
+        run: |
+          echo "" >> license-report.md
+          echo "## JavaScript Dependencies" >> license-report.md
+          npx license-checker --summary --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Unlicense' >> license-report.md || true
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-compliance-report
+          path: license-report.md
+          retention-days: 30
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [rust-security, dependency-check, vulnerability-scan, license-check]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Download all security reports
+        uses: actions/download-artifact@v4
+        with:
+          path: security-reports/
+
+      - name: Generate security summary
+        run: |
+          echo "# Security Audit Summary" > security-summary.md
+          echo "Generated on: $(date)" >> security-summary.md
+          echo "" >> security-summary.md
+          echo "## Job Results" >> security-summary.md
+          echo "- Rust Security: ${{ needs.rust-security.result }}" >> security-summary.md
+          echo "- Dependency Check: ${{ needs.dependency-check.result }}" >> security-summary.md
+          echo "- Vulnerability Scan: ${{ needs.vulnerability-scan.result }}" >> security-summary.md
+          echo "- License Check: ${{ needs.license-check.result }}" >> security-summary.md
+          echo "" >> security-summary.md
+          
+          if [ "${{ needs.rust-security.result }}" = "failure" ] || [ "${{ needs.dependency-check.result }}" = "failure" ]; then
+            echo "❌ **Security issues detected - immediate attention required**" >> security-summary.md
+          else
+            echo "✅ **All security checks passed**" >> security-summary.md
+          fi
+
+      - name: Upload security summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-summary
+          path: security-summary.md
+          retention-days: 90

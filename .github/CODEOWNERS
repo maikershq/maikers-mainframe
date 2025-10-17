@@ -1,0 +1,162 @@
+# Global Code Ownership
+# Learn more about code ownership: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# =============================================================================
+# GLOBAL OWNERSHIP
+# =============================================================================
+
+# Default ownership for all files
+* @maikershq/core-team
+
+# =============================================================================
+# CORE PROTOCOL
+# =============================================================================
+
+# Anchor program - requires protocol and security team review
+/programs/ @maikershq/protocol-team @maikershq/security-team
+
+# Program source code - critical security review required
+/programs/mainframe/src/ @maikershq/protocol-team @maikershq/security-team
+
+# Program configuration
+/programs/mainframe/Cargo.toml @maikershq/protocol-team
+/programs/mainframe/Xargo.toml @maikershq/protocol-team
+
+# =============================================================================
+# TESTING & VALIDATION
+# =============================================================================
+
+# Test files - protocol team lead
+/tests/ @maikershq/protocol-team
+
+# Integration tests
+/tests/mainframe.ts @maikershq/protocol-team @maikershq/qa-team
+
+# =============================================================================
+# BUILD & DEPLOYMENT
+# =============================================================================
+
+# Anchor configuration - protocol and security review
+Anchor.toml @maikershq/protocol-team @maikershq/security-team
+
+# Cargo workspace configuration
+Cargo.toml @maikershq/protocol-team
+Cargo.lock @maikershq/protocol-team
+
+# Package configuration
+package.json @maikershq/core-team
+yarn.lock @maikershq/core-team
+tsconfig.json @maikershq/core-team
+
+# Migration scripts - critical security review
+/migrations/ @maikershq/protocol-team @maikershq/security-team
+
+# =============================================================================
+# DOCUMENTATION
+# =============================================================================
+
+# Documentation directory
+/docs/ @maikershq/docs-team
+
+# Critical documentation - additional review required
+/docs/security.md @maikershq/security-team @maikershq/docs-team
+/docs/economics.md @maikershq/protocol-team @maikershq/docs-team
+/docs/program-specs.md @maikershq/protocol-team @maikershq/docs-team
+
+# Main README
+README.md @maikershq/docs-team @maikershq/core-team
+
+# =============================================================================
+# SECURITY & COMPLIANCE
+# =============================================================================
+
+# Security policy and related files
+SECURITY.md @maikershq/security-team
+CODE_OF_CONDUCT.md @maikershq/community-team
+CONTRIBUTING.md @maikershq/community-team @maikershq/docs-team
+
+# License files
+LICENSE @maikershq/legal-team @maikershq/core-team
+
+# =============================================================================
+# GITHUB CONFIGURATION
+# =============================================================================
+
+# GitHub configuration files
+/.github/ @maikershq/devops-team @maikershq/core-team
+
+# Workflows - DevOps and security review for sensitive workflows
+/.github/workflows/ @maikershq/devops-team
+/.github/workflows/security.yml @maikershq/security-team @maikershq/devops-team
+/.github/workflows/release.yml @maikershq/protocol-team @maikershq/devops-team
+
+# Issue and PR templates
+/.github/ISSUE_TEMPLATE/ @maikershq/community-team
+/.github/pull_request_template.md @maikershq/community-team
+
+# This CODEOWNERS file
+/.github/CODEOWNERS @maikershq/core-team
+
+# =============================================================================
+# KEYS & SENSITIVE FILES
+# =============================================================================
+
+# Keypair files - security team only
+/keys/ @maikershq/security-team
+
+# Environment and configuration files
+.env* @maikershq/security-team
+*.key @maikershq/security-team
+*.pem @maikershq/security-team
+
+# =============================================================================
+# EXAMPLES & DEMOS
+# =============================================================================
+
+# Example implementations
+/examples/ @maikershq/docs-team @maikershq/developer-relations
+
+# =============================================================================
+# SPECIFIC FILE PATTERNS
+# =============================================================================
+
+# Rust source files in program directory
+*.rs @maikershq/protocol-team
+
+# TypeScript client files
+*.ts @maikershq/sdk-team
+*.tsx @maikershq/sdk-team
+
+# JSON configuration files
+*.json @maikershq/core-team
+
+# Markdown documentation
+*.md @maikershq/docs-team
+
+# =============================================================================
+# CRITICAL SECURITY FILES
+# =============================================================================
+
+# Files that require unanimous approval from security team
+/programs/mainframe/src/lib.rs @maikershq/protocol-team @maikershq/security-team @maikershq/core-team
+/programs/mainframe/src/state.rs @maikershq/protocol-team @maikershq/security-team
+/programs/mainframe/src/instructions/create_agent.rs @maikershq/protocol-team @maikershq/security-team
+/programs/mainframe/src/instructions/transfer_agent.rs @maikershq/protocol-team @maikershq/security-team
+/programs/mainframe/src/instructions/update_fees.rs @maikershq/protocol-team @maikershq/security-team
+
+# =============================================================================
+# TEAM DEFINITIONS
+# =============================================================================
+
+# Note: The following teams should be configured in GitHub organization settings:
+# 
+# @maikershq/core-team - Overall project leadership and architecture decisions
+# @maikershq/protocol-team - Anchor program development and protocol logic
+# @maikershq/security-team - Security reviews, audits, and vulnerability assessment
+# @maikershq/docs-team - Documentation writing and maintenance
+# @maikershq/devops-team - CI/CD, deployment, and infrastructure
+# @maikershq/sdk-team - Client SDK development and integration
+# @maikershq/qa-team - Testing, quality assurance, and validation
+# @maikershq/community-team - Community management and developer relations
+# @maikershq/developer-relations - Developer experience and ecosystem growth
+# @maikershq/legal-team - Legal, compliance, and licensing

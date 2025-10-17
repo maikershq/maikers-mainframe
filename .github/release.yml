@@ -1,0 +1,113 @@
+changelog:
+  categories:
+    - title: 🚀 New Features
+      labels:
+        - enhancement
+        - feature
+        - new-feature
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+        - bugfix
+        - hotfix
+    - title: 🔒 Security
+      labels:
+        - security
+        - vulnerability
+        - audit
+        - security-fix
+    - title: ⚡ Performance
+      labels:
+        - performance
+        - optimization
+        - perf
+        - gas-optimization
+        - compute-optimization
+    - title: 💥 Breaking Changes
+      labels:
+        - breaking-change
+        - breaking
+        - major
+    - title: 📚 Documentation
+      labels:
+        - documentation
+        - docs
+        - readme
+        - guide
+        - tutorial
+    - title: 🏗️ Build System
+      labels:
+        - build
+        - ci
+        - cd
+        - workflow
+        - deps
+        - dependencies
+    - title: 🧪 Testing
+      labels:
+        - test
+        - testing
+        - tests
+        - coverage
+        - qa
+    - title: 🎨 Code Style & Refactoring
+      labels:
+        - style
+        - refactor
+        - refactoring
+        - cleanup
+        - formatting
+    - title: 🔧 Configuration
+      labels:
+        - config
+        - configuration
+        - settings
+        - env
+    - title: 🌐 Integration & SDK
+      labels:
+        - sdk
+        - integration
+        - api
+        - client
+        - typescript
+    - title: 📦 Dependencies
+      labels:
+        - dependencies
+        - deps
+        - upgrade
+        - bump
+        - update
+    - title: 🏷️ Release Management
+      labels:
+        - release
+        - version
+        - changelog
+        - deploy
+    - title: 🤖 Protocol Changes
+      labels:
+        - protocol
+        - anchor
+        - solana
+        - program
+        - instruction
+    - title: 💰 Economics & Fees
+      labels:
+        - economics
+        - fees
+        - revenue
+        - treasury
+        - distribution
+    - title: 👥 Community
+      labels:
+        - community
+        - contributor
+        - good-first-issue
+        - help-wanted
+  exclude_labels:
+    - ignore-for-release
+    - wontfix
+    - invalid
+    - duplicate
+    - question
+    - discussion

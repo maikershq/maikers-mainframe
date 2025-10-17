@@ -1,0 +1,156 @@
+name: ✨ Feature Request
+description: Suggest new functionality for Mainframe protocol
+labels: ["enhancement", "needs-review"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please help us understand your use case and requirements.
+
+  - type: dropdown
+    id: feature_category
+    attributes:
+      label: Feature Category
+      description: What type of feature are you requesting?
+      options:
+        - Protocol Enhancement
+        - SDK Improvement
+        - Developer Experience
+        - Documentation
+        - Integration Support
+        - Performance Optimization
+        - Security Enhancement
+        - Testing Infrastructure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_summary
+    attributes:
+      label: Problem Summary
+      description: What problem does this feature solve? What use case does it address?
+      placeholder: Describe the problem or limitation you're experiencing...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your ideal solution or feature implementation
+      placeholder: How would you like this feature to work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_stories
+    attributes:
+      label: User Stories
+      description: Describe how this feature would be used (as a developer, integrator, end-user, etc.)
+      placeholder: |
+        As a [type of user], I want to [goal] so that [benefit].
+        
+        Example:
+        As a dApp developer, I want to batch multiple agent operations so that I can reduce transaction costs for my users.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What specific requirements must be met for this feature to be considered complete?
+      placeholder: |
+        - [ ] Requirement 1
+        - [ ] Requirement 2
+        - [ ] Requirement 3
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Needed for important use case
+        - Critical - Blocking major functionality
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: Describe any alternative approaches you've considered...
+    validations:
+      required: false
+
+  - type: textarea
+    id: technical_considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical details, constraints, or implementation ideas?
+      placeholder: |
+        - API design ideas
+        - Performance considerations
+        - Security implications
+        - Backward compatibility needs
+    validations:
+      required: false
+
+  - type: dropdown
+    id: breaking_change
+    attributes:
+      label: Breaking Change
+      description: Would this feature require breaking changes to existing APIs?
+      options:
+        - "No - Backward compatible"
+        - "Yes - Breaking changes required"
+        - "Unsure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: ecosystem_impact
+    attributes:
+      label: Ecosystem Impact
+      description: How would this feature affect existing integrations, SDKs, or ecosystem projects?
+      placeholder: Consider impact on existing users, integrators, and ecosystem partners...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other context, links, or examples that would help us understand this request?
+      placeholder: |
+        - Links to similar features in other projects
+        - Reference implementations
+        - Community discussions
+        - Real-world examples
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing feature requests that might be similar
+          required: true
+        - label: This feature aligns with Mainframe's core mission of linking AI agents to NFTs
+          required: true
+        - label: I understand this is a suggestion and may not be implemented exactly as proposed
+          required: true
