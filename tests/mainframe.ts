@@ -120,6 +120,22 @@ describe("Mainframe Security & Performance Tests", () => {
 
     // Initialize protocol config (skip if already initialized from other tests)
     try {
+      const treasuryParams = {
+        protocolTreasury: protocolTreasury.publicKey,
+        validatorTreasury: validatorTreasury.publicKey,
+        networkTreasury: networkTreasury.publicKey,
+        protocolTreasuryBps: 5000, // 50%
+        validatorTreasuryBps: 3000, // 30%
+        networkTreasuryBps: 2000, // 20%
+      };
+
+      const configParams = {
+        genesisCollectionMint,
+        maxPartnerCollections: new anchor.BN(100),
+        maxAffiliateBps: 5000, // 50%
+        manager: protocolAuthority.publicKey,
+      };
+
       await program.methods
         .initializeConfig(
           {
@@ -130,16 +146,8 @@ describe("Mainframe Security & Performance Tests", () => {
             closeAgent: fees.closeAgent,
             executeAction: fees.executeAction,
           },
-          genesisCollectionMint,
-          protocolTreasury.publicKey,
-          validatorTreasury.publicKey,
-          networkTreasury.publicKey,
-          5000, // protocol_treasury_bps (50%)
-          3000, // validator_treasury_bps (30%)
-          2000, // network_treasury_bps (20%)
-          new anchor.BN(100), // max_partner_collections
-          5000, // max_affiliate_bps (50%)
-          protocolAuthority.publicKey
+          treasuryParams,
+          configParams
         )
         .accounts({
           protocolConfig: protocolConfigPda,

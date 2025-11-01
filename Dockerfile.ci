@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     libudev-dev \
     ca-certificates \
     gnupg \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust

@@ -418,19 +418,27 @@ async function initializeConfig(config: Config): Promise<void> {
   console.log("\n📦 Initializing protocol configuration...");
 
   try {
+    const treasuryParams = {
+      protocolTreasury: treasuries.protocol.publicKey,
+      validatorTreasury: treasuries.validator.publicKey,
+      networkTreasury: treasuries.network.publicKey,
+      protocolTreasuryBps: config.treasuryDistribution.protocolBps,
+      validatorTreasuryBps: config.treasuryDistribution.validatorBps,
+      networkTreasuryBps: config.treasuryDistribution.networkBps,
+    };
+
+    const configParams = {
+      genesisCollectionMint: genesisCollection.publicKey,
+      maxPartnerCollections: new anchor.BN(config.protocolLimits.maxPartnerCollections),
+      maxAffiliateBps: config.protocolLimits.maxAffiliateBps,
+      manager: authority.publicKey,
+    };
+
     const tx = await program.methods
       .initializeConfig(
         fees,
-        genesisCollection.publicKey,
-        treasuries.protocol.publicKey,
-        treasuries.validator.publicKey,
-        treasuries.network.publicKey,
-        config.treasuryDistribution.protocolBps,
-        config.treasuryDistribution.validatorBps,
-        config.treasuryDistribution.networkBps,
-        new anchor.BN(config.protocolLimits.maxPartnerCollections),
-        config.protocolLimits.maxAffiliateBps,
-        authority.publicKey
+        treasuryParams,
+        configParams
       )
       .accountsPartial({
         protocolConfig: protocolConfigPDA,
