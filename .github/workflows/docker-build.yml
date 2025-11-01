@@ -58,12 +58,13 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.ci
-          push: ${{ github.event_name != 'pull_request' && (github.event.inputs.push_to_registry != 'false') }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
+          provenance: false
 
       - name: Image details
         run: |

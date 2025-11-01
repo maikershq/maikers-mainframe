@@ -30,10 +30,11 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
     -y \
     --default-toolchain ${RUST_VERSION} \
     --profile minimal \
-    --component rustfmt,clippy && \
-    . /root/.cargo/env
+    --component rustfmt,clippy
 
 ENV PATH="/root/.cargo/bin:${PATH}"
+ENV RUSTUP_HOME="/root/.rustup"
+ENV CARGO_HOME="/root/.cargo"
 
 # Install Solana CLI (Agave) - Updated 2025-11-01
 RUN sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)" && \
