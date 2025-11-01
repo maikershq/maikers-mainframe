@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+target/
+node_modules/
+dist/
+build/
+*.log
+
+# Test artifacts
+test-ledger/
+.anchor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed for image build)
+*.md
+!README.md
+docs/
+
+# CI/CD (not needed in image)
+.github/
+
+# Keys and secrets
+keys/
+*.key
+*.pem
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
