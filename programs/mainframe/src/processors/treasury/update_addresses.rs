@@ -1,7 +1,7 @@
-use anchor_lang::prelude::*;
-use crate::instructions::UpdateTreasuryAddresses;
 use crate::errors::MainframeError;
 use crate::events::TreasuryAddressesUpdated;
+use crate::instructions::UpdateTreasuryAddresses;
+use anchor_lang::prelude::*;
 
 pub fn update_treasury_addresses(
     ctx: Context<UpdateTreasuryAddresses>,
@@ -16,7 +16,7 @@ pub fn update_treasury_addresses(
     // ========================================================================
     // SECURITY VALIDATIONS
     // ========================================================================
-    
+
     // 1. Validate none of the new treasuries are the System Program
     require!(
         new_protocol_treasury != anchor_lang::system_program::ID,
@@ -90,9 +90,9 @@ pub fn update_treasury_addresses(
     // ========================================================================
     // UPDATE TREASURY ADDRESSES
     // ========================================================================
-    
+
     let protocol_config = &mut ctx.accounts.protocol_config;
-    
+
     let old_protocol_treasury = protocol_config.protocol_treasury;
     let old_validator_treasury = protocol_config.validator_treasury;
     let old_network_treasury = protocol_config.network_treasury;
@@ -104,7 +104,7 @@ pub fn update_treasury_addresses(
     // ========================================================================
     // EMIT EVENT FOR TRANSPARENCY AND INDEXING
     // ========================================================================
-    
+
     emit!(TreasuryAddressesUpdated {
         authority: ctx.accounts.authority.key(),
         old_protocol_treasury,
@@ -117,10 +117,21 @@ pub fn update_treasury_addresses(
     });
 
     msg!("Treasury addresses updated successfully");
-    msg!("  Protocol: {} -> {}", old_protocol_treasury, new_protocol_treasury);
-    msg!("  Validator: {} -> {}", old_validator_treasury, new_validator_treasury);
-    msg!("  Network: {} -> {}", old_network_treasury, new_network_treasury);
+    msg!(
+        "  Protocol: {} -> {}",
+        old_protocol_treasury,
+        new_protocol_treasury
+    );
+    msg!(
+        "  Validator: {} -> {}",
+        old_validator_treasury,
+        new_validator_treasury
+    );
+    msg!(
+        "  Network: {} -> {}",
+        old_network_treasury,
+        new_network_treasury
+    );
 
     Ok(())
 }
-

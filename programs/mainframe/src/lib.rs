@@ -23,16 +23,16 @@ security_txt! {
 pub mod constants;
 pub mod errors;
 pub mod events;
-pub mod state;
 pub mod instructions;
 pub mod processors;
+pub mod state;
 pub mod utils;
 
 pub use constants::*;
 pub use errors::*;
 pub use events::*;
-pub use state::*;
 pub use instructions::*;
+pub use state::*;
 pub use utils::*;
 
 declare_id!("mnfm211AwTDA8fGvPezYs3jjxAXgoucHGuTMUbjFssE");
@@ -143,11 +143,15 @@ pub mod mainframe {
 
     /// Update protocol limits
     pub fn update_protocol_limits(
-        ctx: Context<UpdateProtocolLimits>, 
+        ctx: Context<UpdateProtocolLimits>,
         max_partner_collections: u64,
-        max_affiliate_bps: u16
+        max_affiliate_bps: u16,
     ) -> Result<()> {
-        processors::treasury::update_protocol_limits(ctx, max_partner_collections, max_affiliate_bps)
+        processors::treasury::update_protocol_limits(
+            ctx,
+            max_partner_collections,
+            max_affiliate_bps,
+        )
     }
 
     /// Update treasury distribution
@@ -182,16 +186,19 @@ pub mod mainframe {
 
     /// Add partner collection
     pub fn add_partner_collection(
-        ctx: Context<AddPartnerCollection>, 
+        ctx: Context<AddPartnerCollection>,
         collection: Pubkey,
         discount_percent: u8,
-        name: String
+        name: String,
     ) -> Result<()> {
         processors::partner::add_partner_collection(ctx, collection, discount_percent, name)
     }
 
     /// Remove partner collection
-    pub fn remove_partner_collection(ctx: Context<RemovePartnerCollection>, collection: Pubkey) -> Result<()> {
+    pub fn remove_partner_collection(
+        ctx: Context<RemovePartnerCollection>,
+        collection: Pubkey,
+    ) -> Result<()> {
         processors::partner::remove_partner_collection(ctx, collection)
     }
 
@@ -208,10 +215,7 @@ pub mod mainframe {
     }
 
     /// Set custom affiliate bonus (Authority or Manager)
-    pub fn set_affiliate_bonus(
-        ctx: Context<SetAffiliateBonus>,
-        bonus_bps: u16,
-    ) -> Result<()> {
+    pub fn set_affiliate_bonus(ctx: Context<SetAffiliateBonus>, bonus_bps: u16) -> Result<()> {
         processors::affiliate::set_affiliate_bonus(ctx, bonus_bps)
     }
 }

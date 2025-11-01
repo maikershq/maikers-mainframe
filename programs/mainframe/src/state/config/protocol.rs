@@ -1,7 +1,7 @@
+use super::fees::FeeStructure;
+use crate::errors::MainframeError;
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
-use crate::errors::MainframeError;
-use super::fees::FeeStructure;
 
 #[account]
 pub struct ProtocolConfig {
@@ -89,21 +89,25 @@ impl ProtocolConfig {
         if fee_amount == 0 {
             return Ok(());
         }
-        
+
         // Security: Validate payer has sufficient balance
         let payer_balance = payer.lamports();
         require!(
-            payer_balance >= fee_amount, 
+            payer_balance >= fee_amount,
             MainframeError::InsufficientBalance
         );
 
         // Validate basis points are correctly configured with checked arithmetic
-        let total_bps = self.protocol_treasury_bps
+        let total_bps = self
+            .protocol_treasury_bps
             .checked_add(self.validator_treasury_bps)
             .and_then(|x| x.checked_add(self.network_treasury_bps))
             .ok_or(MainframeError::InvalidTreasuryDistribution)?;
-        require!(total_bps == 10_000, MainframeError::InvalidTreasuryDistribution);
-        
+        require!(
+            total_bps == 10_000,
+            MainframeError::InvalidTreasuryDistribution
+        );
+
         // Calculate distribution using basis points
         let protocol_fee = fee_amount * self.protocol_treasury_bps as u64 / 10_000;
         let validator_fee = fee_amount * self.validator_treasury_bps as u64 / 10_000;
@@ -121,9 +125,9 @@ impl ProtocolConfig {
                     Transfer {
                         from: payer.to_account_info(),
                         to: protocol_treasury.to_account_info(),
-                    }
+                    },
                 ),
-                protocol_fee_final
+                protocol_fee_final,
             )?;
         }
 
@@ -134,9 +138,9 @@ impl ProtocolConfig {
                     Transfer {
                         from: payer.to_account_info(),
                         to: validator_treasury.to_account_info(),
-                    }
+                    },
                 ),
-                validator_fee
+                validator_fee,
             )?;
         }
 
@@ -147,15 +151,20 @@ impl ProtocolConfig {
                     Transfer {
                         from: payer.to_account_info(),
                         to: network_treasury.to_account_info(),
-                    }
+                    },
                 ),
-                network_fee
+                network_fee,
             )?;
         }
 
-        msg!("Fee distributed: {} lamports (protocol={}, validator={}, network={})", 
-             fee_amount, protocol_fee_final, validator_fee, network_fee);
-        
+        msg!(
+            "Fee distributed: {} lamports (protocol={}, validator={}, network={})",
+            fee_amount,
+            protocol_fee_final,
+            validator_fee,
+            network_fee
+        );
+
         Ok(())
     }
 
@@ -174,14 +183,17 @@ impl ProtocolConfig {
         if total_fee == 0 {
             return Ok(0);
         }
-        
+
         // Validate affiliate doesn't exceed configured maximum
-        require!(seller_affiliate_bps <= self.max_affiliate_bps, MainframeError::InvalidAffiliate);
+        require!(
+            seller_affiliate_bps <= self.max_affiliate_bps,
+            MainframeError::InvalidAffiliate
+        );
 
         // Security: Validate payer has sufficient balance
         let payer_balance = payer.lamports();
         require!(
-            payer_balance >= total_fee, 
+            payer_balance >= total_fee,
             MainframeError::InsufficientBalance
         );
 
@@ -202,19 +214,23 @@ impl ProtocolConfig {
                     Transfer {
                         from: payer.to_account_info(),
                         to: seller.unwrap().to_account_info(),
-                    }
+                    },
                 ),
-                seller_fee
+                seller_fee,
             )?;
         }
-        
+
         // Validate treasury distribution with checked arithmetic
-        let total_bps = self.protocol_treasury_bps
+        let total_bps = self
+            .protocol_treasury_bps
             .checked_add(self.validator_treasury_bps)
             .and_then(|x| x.checked_add(self.network_treasury_bps))
             .ok_or(MainframeError::InvalidTreasuryDistribution)?;
-        require!(total_bps == 10_000, MainframeError::InvalidTreasuryDistribution);
-        
+        require!(
+            total_bps == 10_000,
+            MainframeError::InvalidTreasuryDistribution
+        );
+
         // Calculate treasury distributions
         let protocol_fee = remaining_fee * self.protocol_treasury_bps as u64 / 10_000;
         let validator_fee = remaining_fee * self.validator_treasury_bps as u64 / 10_000;
@@ -230,9 +246,9 @@ impl ProtocolConfig {
                     Transfer {
                         from: payer.to_account_info(),
                         to: protocol_treasury.to_account_info(),
-                    }
+                    },
                 ),
-                protocol_fee_final
+                protocol_fee_final,
             )?;
         }
 
@@ -243,9 +259,9 @@ impl ProtocolConfig {
                     Transfer {
                         from: payer.to_account_info(),
                         to: validator_treasury.to_account_info(),
-                    }
+                    },
                 ),
-                validator_fee
+                validator_fee,
             )?;
         }
 
@@ -256,16 +272,21 @@ impl ProtocolConfig {
                     Transfer {
                         from: payer.to_account_info(),
                         to: network_treasury.to_account_info(),
-                    }
+                    },
                 ),
-                network_fee
+                network_fee,
             )?;
         }
 
-        msg!("Fee distributed: total={}, seller={}, protocol={}, validator={}, network={}", 
-             total_fee, seller_fee, protocol_fee_final, validator_fee, network_fee);
-        
+        msg!(
+            "Fee distributed: total={}, seller={}, protocol={}, validator={}, network={}",
+            total_fee,
+            seller_fee,
+            protocol_fee_final,
+            validator_fee,
+            network_fee
+        );
+
         Ok(seller_fee)
     }
 }
-

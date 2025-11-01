@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use crate::errors::MainframeError;
 use crate::instructions::UpdateTreasuryDistribution;
+use anchor_lang::prelude::*;
 
 /// Update treasury distribution
 pub fn update_treasury_distribution(
@@ -14,13 +14,15 @@ pub fn update_treasury_distribution(
         .checked_add(validator_treasury_bps)
         .and_then(|x| x.checked_add(network_treasury_bps))
         .ok_or(MainframeError::InvalidTreasuryDistribution)?;
-    require!(total_bps == 10_000, MainframeError::InvalidTreasuryDistribution);
-    
+    require!(
+        total_bps == 10_000,
+        MainframeError::InvalidTreasuryDistribution
+    );
+
     let config = &mut ctx.accounts.protocol_config;
     config.protocol_treasury_bps = protocol_treasury_bps;
     config.validator_treasury_bps = validator_treasury_bps;
     config.network_treasury_bps = network_treasury_bps;
-    
+
     Ok(())
 }
-

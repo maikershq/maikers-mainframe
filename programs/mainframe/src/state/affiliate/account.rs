@@ -2,11 +2,11 @@ use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AffiliateTier {
-    Bronze,    // 0-99 sales (15%)
-    Silver,    // 100-499 sales (20%)
-    Gold,      // 500-1,999 sales (30%)
-    Platinum,  // 2,000-9,999 sales (40%)
-    Diamond,   // 10,000+ sales (50%)
+    Bronze,   // 0-99 sales (15%)
+    Silver,   // 100-499 sales (20%)
+    Gold,     // 500-1,999 sales (30%)
+    Platinum, // 2,000-9,999 sales (40%)
+    Diamond,  // 10,000+ sales (50%)
 }
 
 #[account]
@@ -45,12 +45,12 @@ impl AffiliateAccount {
         8 + // created_at
         2 + // bonus_bps
         1; // bump
-    
+
     /// Get current tier based on total sales
     pub fn get_tier(&self) -> AffiliateTier {
         crate::utils::calculate_tier(self.total_sales)
     }
-    
+
     /// Get total commission rate (tier + bonus, capped at protocol max)
     pub fn get_commission_bps(&self, max_affiliate_bps: u16) -> u16 {
         let tier_bps = crate::utils::get_tier_commission_bps(self.get_tier());

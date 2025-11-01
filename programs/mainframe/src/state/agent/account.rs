@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::constants::*;
+use anchor_lang::prelude::*;
 
 #[account]
 pub struct AgentAccount {
@@ -42,4 +42,3 @@ pub enum AgentStatus {
     Paused,
     Closed,
 }
-

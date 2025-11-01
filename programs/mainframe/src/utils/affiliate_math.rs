@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use crate::constants::*;
 use crate::state::AffiliateTier;
+use anchor_lang::prelude::*;
 
 /// Calculate affiliate tier based on total sales
 pub fn calculate_tier(total_sales: u64) -> AffiliateTier {
@@ -34,10 +34,7 @@ pub fn calculate_total_commission_bps(tier: AffiliateTier) -> u16 {
 }
 
 /// Calculate affiliate commission from total fee
-pub fn calculate_affiliate_commission(
-    total_fee: u64,
-    commission_bps: u16,
-) -> Result<u64> {
+pub fn calculate_affiliate_commission(total_fee: u64, commission_bps: u16) -> Result<u64> {
     let commission = total_fee
         .checked_mul(commission_bps as u64)
         .ok_or(ProgramError::ArithmeticOverflow)?
@@ -96,4 +93,3 @@ mod tests {
         assert_eq!(REFERRER_BPS, 500); // 5%
     }
 }
-

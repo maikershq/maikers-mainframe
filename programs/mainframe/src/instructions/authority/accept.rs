@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use crate::errors::MainframeError;
 use crate::state::ProtocolConfig;
+use anchor_lang::prelude::*;
 
 /// Accept authority transfer (step 2 of 2-step transfer)
 /// New authority must explicitly accept to prevent loss of control
@@ -14,8 +14,7 @@ pub struct AcceptAuthority<'info> {
         constraint = protocol_config.pending_authority.as_ref().unwrap() == &new_authority.key() @ MainframeError::Unauthorized
     )]
     pub protocol_config: Account<'info, ProtocolConfig>,
-    
+
     #[account(mut)]
     pub new_authority: Signer<'info>,
 }
-

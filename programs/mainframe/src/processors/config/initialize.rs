@@ -1,7 +1,7 @@
-use anchor_lang::prelude::*;
 use crate::errors::MainframeError;
 use crate::instructions::InitializeConfig;
 use crate::state::FeeStructure;
+use anchor_lang::prelude::*;
 
 /// Initialize protocol configuration
 pub fn initialize_config(
@@ -23,11 +23,17 @@ pub fn initialize_config(
         .checked_add(validator_treasury_bps)
         .and_then(|x| x.checked_add(network_treasury_bps))
         .ok_or(MainframeError::InvalidTreasuryDistribution)?;
-    require!(total_bps == 10_000, MainframeError::InvalidTreasuryDistribution);
-    
+    require!(
+        total_bps == 10_000,
+        MainframeError::InvalidTreasuryDistribution
+    );
+
     // Validate affiliate bps doesn't exceed 100%
-    require!(max_affiliate_bps <= 10_000, MainframeError::InvalidAffiliate);
-    
+    require!(
+        max_affiliate_bps <= 10_000,
+        MainframeError::InvalidAffiliate
+    );
+
     let config = &mut ctx.accounts.protocol_config;
     config.authority = ctx.accounts.authority.key();
     config.manager = manager;
@@ -45,9 +51,11 @@ pub fn initialize_config(
     config.max_partner_collections = max_partner_collections;
     config.max_affiliate_bps = max_affiliate_bps;
     config.pending_authority = None;
-    
-    msg!("Protocol initialized with genesis collection: {}", genesis_collection_mint);
-    
+
+    msg!(
+        "Protocol initialized with genesis collection: {}",
+        genesis_collection_mint
+    );
+
     Ok(())
 }
-

@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use crate::errors::MainframeError;
-use crate::state::{ProtocolConfig, PartnerCollectionAccount};
+use crate::state::{PartnerCollectionAccount, ProtocolConfig};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 #[instruction(collection_mint: Pubkey)]
@@ -13,7 +13,7 @@ pub struct AddPartnerCollection<'info> {
         bump
     )]
     pub partner_account: Account<'info, PartnerCollectionAccount>,
-    
+
     #[account(
         mut,
         seeds = [b"protocol_config"],
@@ -21,9 +21,9 @@ pub struct AddPartnerCollection<'info> {
         constraint = protocol_config.authority == signer.key() || protocol_config.manager == signer.key() @ MainframeError::Unauthorized
     )]
     pub protocol_config: Account<'info, ProtocolConfig>,
-    
+
     #[account(mut)]
     pub signer: Signer<'info>,
-    
+
     pub system_program: Program<'info, System>,
 }

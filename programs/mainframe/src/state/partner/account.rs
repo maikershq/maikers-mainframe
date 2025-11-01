@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::constants::*;
+use anchor_lang::prelude::*;
 
 #[account]
 pub struct PartnerCollectionAccount {
@@ -20,4 +20,3 @@ impl PartnerCollectionAccount {
         8 + // added_at
         1; // bump
 }
-

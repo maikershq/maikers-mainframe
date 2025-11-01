@@ -1,8 +1,8 @@
-use anchor_lang::prelude::*;
 use crate::errors::MainframeError;
 use crate::events::*;
 use crate::instructions::PauseAgent;
 use crate::state::AgentStatus;
+use anchor_lang::prelude::*;
 
 /// Pause or resume agent
 pub fn pause_agent(ctx: Context<PauseAgent>) -> Result<()> {
@@ -11,16 +11,16 @@ pub fn pause_agent(ctx: Context<PauseAgent>) -> Result<()> {
         AgentStatus::Active => {
             ctx.accounts.agent_account.status = AgentStatus::Paused;
             true
-        },
+        }
         AgentStatus::Paused => {
             ctx.accounts.agent_account.status = AgentStatus::Active;
             false
-        },
+        }
         _ => return Err(MainframeError::AgentNotActive.into()),
     };
-    
+
     ctx.accounts.agent_account.updated_at = Clock::get()?.unix_timestamp;
-    
+
     // Emit appropriate event
     if is_paused {
         emit!(AgentPaused {
@@ -35,7 +35,6 @@ pub fn pause_agent(ctx: Context<PauseAgent>) -> Result<()> {
             timestamp: Clock::get()?.unix_timestamp,
         });
     }
-    
+
     Ok(())
 }
-

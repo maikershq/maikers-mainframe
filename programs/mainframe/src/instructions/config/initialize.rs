@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::state::ProtocolConfig;
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct InitializeConfig<'info> {
@@ -11,9 +11,9 @@ pub struct InitializeConfig<'info> {
         bump
     )]
     pub protocol_config: Account<'info, ProtocolConfig>,
-    
+
     #[account(mut)]
     pub authority: Signer<'info>,
-    
+
     pub system_program: Program<'info, System>,
 }

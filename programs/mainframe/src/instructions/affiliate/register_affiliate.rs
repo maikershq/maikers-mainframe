@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::state::AffiliateAccount;
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct RegisterAffiliate<'info> {
@@ -22,4 +22,3 @@ pub struct RegisterAffiliate<'info> {
 
     pub system_program: Program<'info, System>,
 }
-

@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use crate::errors::MainframeError;
 use crate::state::{AgentAccount, AgentStatus, ProtocolConfig};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct CloseAgentAccount<'info> {

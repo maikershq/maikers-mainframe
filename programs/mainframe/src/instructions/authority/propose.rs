@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use crate::errors::MainframeError;
 use crate::state::ProtocolConfig;
+use anchor_lang::prelude::*;
 
 /// Propose new protocol authority (step 1 of 2-step transfer)
 /// Two-step authority transfer prevents accidental lockout
@@ -13,8 +13,7 @@ pub struct ProposeAuthority<'info> {
         constraint = protocol_config.authority == current_authority.key() @ MainframeError::Unauthorized
     )]
     pub protocol_config: Account<'info, ProtocolConfig>,
-    
+
     #[account(mut)]
     pub current_authority: Signer<'info>,
 }
-

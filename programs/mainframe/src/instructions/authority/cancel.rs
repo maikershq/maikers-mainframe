@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
 use crate::errors::MainframeError;
 use crate::state::ProtocolConfig;
+use anchor_lang::prelude::*;
 
 /// Cancel pending authority transfer
 /// Current authority can cancel if they change their mind
@@ -13,8 +13,7 @@ pub struct CancelAuthority<'info> {
         constraint = protocol_config.authority == authority.key() @ MainframeError::Unauthorized
     )]
     pub protocol_config: Account<'info, ProtocolConfig>,
-    
+
     #[account(mut)]
     pub authority: Signer<'info>,
 }
-

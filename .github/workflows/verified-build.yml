@@ -50,19 +50,14 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           
       - name: Update source_revision with current commit
-        run: |
-          cd maikers-mainframe
-          ./scripts/update-source-revision.sh
+        run: ./scripts/update-source-revision.sh
         
       - name: Run verified build
-        run: |
-          cd maikers-mainframe
-          ./scripts/verified-build.sh
+        run: ./scripts/verified-build.sh
           
       - name: Extract build info
         id: build-info
         run: |
-          cd maikers-mainframe
           BUILD_HASH=$(jq -r '.binary_hash' target/build-verification.json)
           PROGRAM_ID=$(jq -r '.program_id' target/build-verification.json)
           GIT_COMMIT=$(jq -r '.git_commit' target/build-verification.json)
@@ -106,14 +101,13 @@ jobs:
         with:
           name: verified-build-${{ github.sha }}
           path: |
-            maikers-mainframe/target/deploy/mainframe.so
-            maikers-mainframe/target/build-verification.json
+            target/deploy/mainframe.so
+            target/build-verification.json
           retention-days: 30
           
       - name: Create release artifact
         if: github.event_name == 'release'
         run: |
-          cd maikers-mainframe
           mkdir -p release
           cp target/deploy/mainframe.so release/
           cp target/build-verification.json release/
@@ -125,7 +119,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: maikers-mainframe/mainframe-verified-build-${{ github.sha }}.tar.gz
+          files: mainframe-verified-build-${{ github.sha }}.tar.gz
 
   security-audit:
     name: Security Audit
@@ -142,12 +136,10 @@ jobs:
       - name: Rust security audit
         run: |
           cargo install cargo-audit
-          cd maikers-mainframe
           cargo audit
           
       - name: Check for security.txt
         run: |
-          cd maikers-mainframe
           if ! grep -q "solana-security-txt" programs/mainframe/Cargo.toml; then
             echo "❌ security.txt dependency missing"
             exit 1

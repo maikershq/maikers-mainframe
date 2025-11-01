@@ -9,4 +9,3 @@ pub struct FeeStructure {
     pub close_agent: u64,
     pub execute_action: u64,
 }
-
