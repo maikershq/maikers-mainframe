@@ -12,7 +12,7 @@ on:
 
 env:
   NODE_VERSION: '20'
-  RUST_VERSION: '1.81'
+  RUST_VERSION: '1.82'
 
 jobs:
   rust-security:
