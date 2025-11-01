@@ -1,5 +1,8 @@
 {
   "license": "ISC",
+  "resolutions": {
+    "form-data": "4.0.4"
+  },
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
