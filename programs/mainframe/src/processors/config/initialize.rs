@@ -29,7 +29,8 @@ pub fn initialize_config(
     config_params: ConfigParams,
 ) -> Result<()> {
     // Validate that basis points sum to 100% (10,000 bps) with checked arithmetic
-    let total_bps = treasury_params.protocol_treasury_bps
+    let total_bps = treasury_params
+        .protocol_treasury_bps
         .checked_add(treasury_params.validator_treasury_bps)
         .and_then(|x| x.checked_add(treasury_params.network_treasury_bps))
         .ok_or(MainframeError::InvalidTreasuryDistribution)?;
