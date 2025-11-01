@@ -6,10 +6,10 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
+[programs.devnet]
 mainframe = "mnfm211AwTDA8fGvPezYs3jjxAXgoucHGuTMUbjFssE"
 
-[programs.devnet]
+[programs.localnet]
 mainframe = "mnfm211AwTDA8fGvPezYs3jjxAXgoucHGuTMUbjFssE"
 
 [programs.mainnet]
