@@ -27,6 +27,10 @@ async function initializeDevnet() {
       validatorBps: 3000, // 30%
       networkBps: 2000, // 20%
     },
+    protocolLimits: {
+      maxPartnerCollections: 100, // 100 partner collections max
+      maxAffiliateBps: 5000, // 50% maximum affiliate commission
+    },
   });
 }
 
@@ -53,6 +57,10 @@ async function initializeMainnet() {
       protocolBps: 4000, // 40%
       validatorBps: 3500, // 35%
       networkBps: 2500, // 25%
+    },
+    protocolLimits: {
+      maxPartnerCollections: 200, // Higher limit for mainnet
+      maxAffiliateBps: 5000, // 50% maximum affiliate commission
     },
   });
 }
@@ -81,6 +89,10 @@ async function initializeWithCustomAuthority() {
       protocolBps: 6000, // 60%
       validatorBps: 2500, // 25%
       networkBps: 1500, // 15%
+    },
+    protocolLimits: {
+      maxPartnerCollections: 50, // Custom limit
+      maxAffiliateBps: 7500, // 75% maximum affiliate commission (custom)
     },
   });
 }

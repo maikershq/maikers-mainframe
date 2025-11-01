@@ -127,11 +127,18 @@ jobs:
   typescript-checks:
     name: TypeScript Lint & Test
     runs-on: ubuntu-latest
+    needs: anchor-build
     timeout-minutes: 15
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download Anchor artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: anchor-artifacts
+          path: target/
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
