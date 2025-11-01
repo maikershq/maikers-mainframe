@@ -2,7 +2,7 @@ name: Build CI Docker Image
 
 on:
   push:
-    branches: [main, develop, feat/affiliate-boost]
+    branches: [main, develop, fix/ci]
     paths:
       - 'Dockerfile.ci'
       - '.github/workflows/docker-build.yml'
