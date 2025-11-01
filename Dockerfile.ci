@@ -63,7 +63,7 @@ RUN cargo install cargo-audit --version 0.21.1 --locked --force && \
 # Verify installations
 RUN echo "=== Verifying installations ===" && \
     echo "PATH: ${PATH}" && \
-    which rustc && which cargo && which solana && which anchor && which cargo-audit && \
+    which rustc && which cargo && which solana && which anchor && which cargo-audit && which cargo-license && \
     rustc --version && \
     cargo --version && \
     rustfmt --version && \
@@ -74,7 +74,6 @@ RUN echo "=== Verifying installations ===" && \
     npm --version && \
     yarn --version && \
     cargo-audit --version && \
-    cargo-license --version && \
     echo "=== All tools installed successfully ==="
 
 # Set working directory
