@@ -57,12 +57,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
     rm -rf /var/lib/apt/lists/*
 
 # Install additional Rust tools
-RUN cargo install cargo-audit --version 0.21.1 --locked
+RUN cargo install cargo-audit --version 0.21.1 --locked --force && \
+    cargo install cargo-license --version 0.6.1 --locked --force
 
 # Verify installations
 RUN echo "=== Verifying installations ===" && \
     echo "PATH: ${PATH}" && \
-    which rustc && which cargo && which solana && which anchor && \
+    which rustc && which cargo && which solana && which anchor && which cargo-audit && \
     rustc --version && \
     cargo --version && \
     rustfmt --version && \
@@ -73,6 +74,7 @@ RUN echo "=== Verifying installations ===" && \
     npm --version && \
     yarn --version && \
     cargo-audit --version && \
+    cargo-license --version && \
     echo "=== All tools installed successfully ==="
 
 # Set working directory
