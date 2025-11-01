@@ -79,6 +79,9 @@ jobs:
         run: |
           sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          solana --version
+          solana-keygen --version
 
       - name: Cache Anchor installation
         uses: actions/cache@v4
@@ -111,6 +114,14 @@ jobs:
 
       - name: Update source_revision with current commit
         run: ./scripts/update-source-revision.sh
+
+      - name: Verify build tools
+        run: |
+          echo "Checking Solana tools..."
+          solana --version
+          cargo --version
+          anchor --version
+          echo "PATH: $PATH"
 
       - name: Build Anchor program
         run: anchor build
