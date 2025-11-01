@@ -9,7 +9,7 @@ on:
     types: [created]
 
 env:
-  SOLANA_VERSION: "1.18.26"
+  SOLANA_VERSION: "3.0.8"
   ANCHOR_VERSION: "0.31.1"
   RUST_VERSION: "1.88.0"
 
@@ -17,37 +17,17 @@ jobs:
   verified-build:
     name: Verified Build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-      
-      - name: Setup Solana
-        run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-          
-      - name: Setup Anchor
-        run: |
-          cargo install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked
-          
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           
       - name: Update source_revision with current commit
         run: ./scripts/update-source-revision.sh
@@ -124,19 +104,19 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     needs: verified-build
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        
       - name: Rust security audit
-        run: |
-          cargo install cargo-audit --version 0.21.1 --locked --force
-          cargo audit
+        run: cargo audit
           
       - name: Check for security.txt
         run: |

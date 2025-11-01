@@ -18,32 +18,18 @@ jobs:
   rust-security:
     name: Rust Security Audit
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-security-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --version 0.21.1 --locked --force
 
       - name: Run Rust security audit
         run: cargo audit
@@ -76,25 +62,16 @@ jobs:
   dependency-check:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 10
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Yarn
-        run: npm install -g yarn
-
-      - name: Cache Node modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-security-${{ hashFiles('**/yarn.lock') }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -116,6 +93,11 @@ jobs:
   vulnerability-scan:
     name: Vulnerability Scanner
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       security-events: write
       contents: read
@@ -124,14 +106,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Yarn
-        run: npm install -g yarn
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -167,16 +141,16 @@ jobs:
   license-check:
     name: License Compliance
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 10
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install cargo-license
         run: cargo install cargo-license --version 0.6.1 --locked
@@ -189,13 +163,8 @@ jobs:
           echo "## Rust Dependencies" >> license-report.md
           cargo license --json | jq -r '.[] | "- \(.name) (\(.version)): \(.license)"' >> license-report.md
 
-      - name: Setup Node.js for license check
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
       - name: Install license-checker
-        run: npm install -g license-checker yarn
+        run: npm install -g license-checker
 
       - name: Install JavaScript dependencies
         run: yarn install --frozen-lockfile

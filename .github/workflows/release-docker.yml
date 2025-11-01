@@ -19,7 +19,7 @@ on:
 env:
   NODE_VERSION: '20'
   RUST_VERSION: '1.88.0'
-  SOLANA_VERSION: '1.18.26'
+  SOLANA_VERSION: '3.0.8'
   ANCHOR_VERSION: '0.31.1'
 
 jobs:
@@ -70,6 +70,11 @@ jobs:
   security-check:
     name: Pre-Release Security Check
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     needs: validate-release
     timeout-minutes: 15
     
@@ -77,25 +82,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
       - name: Run security audit
-        run: |
-          cargo install cargo-audit --version 0.21.1 --locked --force
-          cargo audit --deny warnings
+        run: cargo audit --deny warnings
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Yarn and dependencies
-        run: |
-          npm install -g yarn
-          yarn install --frozen-lockfile
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
       - name: Check for critical vulnerabilities
         run: |
@@ -110,6 +101,11 @@ jobs:
   build-release:
     name: Build Release Artifacts
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     needs: [validate-release, security-check]
     timeout-minutes: 25
     
@@ -117,39 +113,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - name: Cache Solana installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/solana/
-            ~/.local/share/solana/
-          key: ${{ runner.os }}-solana-${{ env.SOLANA_VERSION }}
-
-      - name: Install Solana CLI
-        run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-
-      - name: Install Anchor CLI
-        run: |
-          cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-          avm install ${{ env.ANCHOR_VERSION }}
-          avm use ${{ env.ANCHOR_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
       - name: Install dependencies
-        run: |
-          npm install -g yarn
-          yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile
 
       - name: Update source_revision with current commit
         run: ./scripts/update-source-revision.sh
@@ -242,9 +207,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: npm install -g yarn
 
-      - name: Install Solana CLI
+      - name: Install Solana CLI (Agave)
         run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
+          sh -c "$(curl -sSfL https://release.anza.xyz/v${{ env.SOLANA_VERSION }}/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
 
       - name: Install Anchor CLI
