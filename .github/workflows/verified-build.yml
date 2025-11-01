@@ -135,7 +135,7 @@ jobs:
         
       - name: Rust security audit
         run: |
-          cargo install cargo-audit
+          cargo install cargo-audit --version 0.21.1 --locked --force
           cargo audit
           
       - name: Check for security.txt

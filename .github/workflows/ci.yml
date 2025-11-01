@@ -49,7 +49,7 @@ jobs:
 
       - name: Install and run cargo-audit
         run: |
-          cargo install cargo-audit --version 0.21.1 --locked
+          cargo install cargo-audit --version 0.21.1 --locked --force
           cargo audit
 
   anchor-build:

@@ -43,7 +43,7 @@ jobs:
           key: ${{ runner.os }}-cargo-security-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install cargo-audit
-        run: cargo install cargo-audit --version 0.21.1 --locked
+        run: cargo install cargo-audit --version 0.21.1 --locked --force
 
       - name: Run Rust security audit
         run: cargo audit
