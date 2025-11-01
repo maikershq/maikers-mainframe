@@ -11,7 +11,7 @@ on:
 env:
   SOLANA_VERSION: "1.18.26"
   ANCHOR_VERSION: "0.31.1"
-  RUST_VERSION: "1.82"
+  RUST_VERSION: "1.88.0"
 
 jobs:
   verified-build:
