@@ -1,6 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Connection, Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import { Program, AnchorProvider, Wallet } from "@coral-xyz/anchor";
+import { createMint, createAccount, mintTo } from "@solana/spl-token";
 import * as fs from "fs";
 import * as path from "path";
 import bs58 from "bs58";
@@ -57,7 +58,7 @@ interface Config {
   authorityKeypairPath?: string;
   fees: {
     createAgent: number;
-    updateConfig: number;
+    updateAgentConfig: number;
     transferAgent: number;
     pauseAgent: number;
     closeAgent: number;
@@ -89,7 +90,7 @@ const defaultConfig: Config = {
   cluster: "localnet",
   fees: {
     createAgent: 50000000,  // 0.05 SOL - Agent activation fee
-    updateConfig: 5000000,  // 0.005 SOL - Configuration updates
+    updateAgentConfig: 5000000,  // 0.005 SOL - Configuration updates
     transferAgent: 10000000, // 0.01 SOL - Ownership transfers
     pauseAgent: 0,          // 0 SOL - Always free
     closeAgent: 0,          // 0 SOL - Always free
@@ -142,6 +143,31 @@ async function loadOrCreateKeypair(name: string, keypairPath?: string): Promise<
   
   console.log(`${name} keypair saved to: ${defaultKeyPath}`);
   return keypair;
+}
+
+async function createGenesisCollection(
+  connection: Connection,
+  payer: Keypair,
+  owner: PublicKey
+): Promise<Keypair> {
+  console.log("\n🎨 Setting up Genesis Collection reference...");
+  
+  const collectionMintKeypair = await loadOrCreateKeypair("genesis-collection");
+  
+  try {
+    const accountInfo = await connection.getAccountInfo(collectionMintKeypair.publicKey);
+    if (accountInfo) {
+      console.log(`✅ Genesis collection mint exists on-chain: ${collectionMintKeypair.publicKey.toBase58()}`);
+      return collectionMintKeypair;
+    }
+  } catch (error) {
+  }
+  
+  console.log(`⚠️  Genesis collection mint not yet created on-chain: ${collectionMintKeypair.publicKey.toBase58()}`);
+  console.log(`   This is OK for testing - the protocol only needs the address for configuration.`);
+  console.log(`   You can create the actual NFT collection later using Metaplex.`);
+  
+  return collectionMintKeypair;
 }
 
 async function loadOrCreateAuthority(keypairPath?: string): Promise<Keypair> {
@@ -257,6 +283,13 @@ async function initializeConfig(config: Config): Promise<void> {
   // Generate or load treasury keypairs based on config
   const treasuries = await loadOrCreateTreasuries(config);
   
+  // Create or load genesis collection
+  const genesisCollection = await createGenesisCollection(
+    connection,
+    authority,
+    authority.publicKey
+  );
+  
   const wallet = new Wallet(authority);
   const provider = new AnchorProvider(connection, wallet, {});
   
@@ -271,6 +304,7 @@ async function initializeConfig(config: Config): Promise<void> {
   console.log("\n=== Mainframe Configuration ===");
   console.log(`Program ID: ${PROGRAM_ID.toBase58()}`);
   console.log(`Authority: ${authority.publicKey.toBase58()}`);
+  console.log(`Genesis Collection: ${genesisCollection.publicKey.toBase58()}`);
   console.log(`Protocol Treasury: ${treasuries.protocol.publicKey.toBase58()}`);
   console.log(`Validator Treasury: ${treasuries.validator.publicKey.toBase58()}`);
   console.log(`Network Treasury: ${treasuries.network.publicKey.toBase58()}`);
@@ -286,7 +320,7 @@ async function initializeConfig(config: Config): Promise<void> {
     console.log(`Current authority: ${configAccount.authority.toBase58()}`);
     
     // Still output environment variables
-    outputEnvironmentVariables(authority, credentialPDA, schemaInfo);
+    outputEnvironmentVariables(authority, genesisCollection.publicKey, credentialPDA, schemaInfo);
     
     console.log("\n💡 Tip: Keypairs are automatically reused from the keys/ directory.");
     console.log("   Use --force-new-keypairs to generate new ones if needed.");
@@ -311,7 +345,7 @@ async function initializeConfig(config: Config): Promise<void> {
   // Prepare fee structure (Anchor converts camelCase to snake_case for Rust)
   const fees = {
     createAgent: new anchor.BN(config.fees.createAgent),
-    updateConfig: new anchor.BN(config.fees.updateConfig),
+    updateAgentConfig: new anchor.BN(config.fees.updateAgentConfig),
     transferAgent: new anchor.BN(config.fees.transferAgent),
     pauseAgent: new anchor.BN(config.fees.pauseAgent),
     closeAgent: new anchor.BN(config.fees.closeAgent),
@@ -333,6 +367,7 @@ async function initializeConfig(config: Config): Promise<void> {
     const tx = await program.methods
       .initializeConfig(
         fees,
+        genesisCollection.publicKey,
         treasuries.protocol.publicKey,
         treasuries.validator.publicKey,
         treasuries.network.publicKey,
@@ -340,7 +375,8 @@ async function initializeConfig(config: Config): Promise<void> {
         config.treasuryDistribution.validatorBps,
         config.treasuryDistribution.networkBps,
         new anchor.BN(config.protocolLimits.maxPartnerCollections),
-        config.protocolLimits.maxAffiliateBps
+        config.protocolLimits.maxAffiliateBps,
+        authority.publicKey
       )
       .accountsPartial({
         protocolConfig: protocolConfigPDA,
@@ -354,7 +390,7 @@ async function initializeConfig(config: Config): Promise<void> {
     console.log(`Transaction signature: ${tx}`);
 
     // Output environment variables
-    outputEnvironmentVariables(authority, credentialPDA, schemaInfo);
+    outputEnvironmentVariables(authority, genesisCollection.publicKey, credentialPDA, schemaInfo);
     
     console.log("\n💡 Tip: Keypairs are automatically reused from the keys/ directory.");
     console.log("   Use --force-new-keypairs to generate new ones if needed.");
@@ -423,7 +459,8 @@ unless you specify --force-new-keypairs or provide specific keypair paths.
 }
 
 function outputEnvironmentVariables(
-  authority: Keypair, 
+  authority: Keypair,
+  genesisCollectionMint: PublicKey,
   credentialPDA: PublicKey, 
   schemaInfo: { schemaPDA: PublicKey; schemaMint: PublicKey }
 ): void {
@@ -434,15 +471,17 @@ function outputEnvironmentVariables(
   const authorityPrivateKey = bs58.encode(authority.secretKey);
   
   console.log(`MAIKERS_AUTHORITY_PRIVATE_KEY=${authorityPrivateKey}`);
+  console.log(`MAIKERS_GENESIS_COLLECTION=${genesisCollectionMint.toBase58()}`);
   console.log(`MAIKERS_CREDENTIAL_PDA=${credentialPDA.toBase58()}`);
   console.log(`MAIKERS_SCHEMA_PDA=${schemaInfo.schemaPDA.toBase58()}`);
   console.log(`MAIKERS_SCHEMA_MINT=${schemaInfo.schemaMint.toBase58()}`);
-  console.log(`MAIKERS_PROTOCOL_TREASURY=${authority.publicKey.toBase58()}`); // Use authority as protocol treasury for environment
+  console.log(`MAIKERS_PROTOCOL_TREASURY=${authority.publicKey.toBase58()}`);
   console.log("");
 
   // Also save to .env file
   const envContent = `# Maikers Mainframe Configuration
 MAIKERS_AUTHORITY_PRIVATE_KEY=${authorityPrivateKey}
+MAIKERS_GENESIS_COLLECTION=${genesisCollectionMint.toBase58()}
 MAIKERS_CREDENTIAL_PDA=${credentialPDA.toBase58()}
 MAIKERS_SCHEMA_PDA=${schemaInfo.schemaPDA.toBase58()}
 MAIKERS_SCHEMA_MINT=${schemaInfo.schemaMint.toBase58()}

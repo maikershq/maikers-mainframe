@@ -70,4 +70,31 @@ pub enum MainframeError {
     
     #[msg("Invalid affiliate percentage (must be 0-5000 bps, max 50%)")]
     InvalidAffiliate,
+    
+    #[msg("Affiliate account not found")]
+    AffiliateNotFound,
+    
+    #[msg("Unauthorized manager operation")]
+    UnauthorizedManager,
+    
+    #[msg("Referral would create circular reference")]
+    CircularReferral,
+    
+    #[msg("Maximum referral depth exceeded")]
+    MaxReferralDepthExceeded,
+    
+    #[msg("Agent is already owned by the new owner")]
+    AlreadyOwner,
+    
+    #[msg("NFT mint does not match agent account")]
+    InvalidNFT,
+    
+    #[msg("Invalid treasury address - cannot be system program, protocol config, or program ID")]
+    InvalidTreasuryAddress,
+    
+    #[msg("All three treasuries must be different addresses")]
+    TreasuriesMustBeDifferent,
+    
+    #[msg("Treasury account mismatch - provided account doesn't match pubkey")]
+    TreasuryAccountMismatch,
 }

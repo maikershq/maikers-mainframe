@@ -1,0 +1,173 @@
+name: Verified Build & Security Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  release:
+    types: [created]
+
+env:
+  SOLANA_VERSION: "1.18.22"
+  ANCHOR_VERSION: "0.31.1"
+  RUST_VERSION: "1.75.0"
+
+jobs:
+  verified-build:
+    name: Verified Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      
+      - name: Setup Solana
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          
+      - name: Setup Anchor
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked
+          
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: Update source_revision with current commit
+        run: |
+          cd maikers-mainframe
+          ./scripts/update-source-revision.sh
+        
+      - name: Run verified build
+        run: |
+          cd maikers-mainframe
+          ./scripts/verified-build.sh
+          
+      - name: Extract build info
+        id: build-info
+        run: |
+          cd maikers-mainframe
+          BUILD_HASH=$(jq -r '.binary_hash' target/build-verification.json)
+          PROGRAM_ID=$(jq -r '.program_id' target/build-verification.json)
+          GIT_COMMIT=$(jq -r '.git_commit' target/build-verification.json)
+          
+          echo "binary_hash=$BUILD_HASH" >> $GITHUB_OUTPUT
+          echo "program_id=$PROGRAM_ID" >> $GITHUB_OUTPUT
+          echo "git_commit=$GIT_COMMIT" >> $GITHUB_OUTPUT
+          
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const buildHash = '${{ steps.build-info.outputs.binary_hash }}';
+            const programId = '${{ steps.build-info.outputs.program_id }}';
+            const gitCommit = '${{ steps.build-info.outputs.git_commit }}';
+            
+            const comment = `## 🔐 Verified Build Results
+            
+            ✅ Build completed successfully with security.txt verified
+            
+            **Build Details:**
+            - **Program ID:** \`${programId}\`
+            - **Binary Hash:** \`${buildHash}\`
+            - **Git Commit:** \`${gitCommit}\`
+            - **Security.txt:** ✅ Verified
+            
+            **Verification:**
+            This build is reproducible and includes embedded security contact information.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: verified-build-${{ github.sha }}
+          path: |
+            maikers-mainframe/target/deploy/mainframe.so
+            maikers-mainframe/target/build-verification.json
+          retention-days: 30
+          
+      - name: Create release artifact
+        if: github.event_name == 'release'
+        run: |
+          cd maikers-mainframe
+          mkdir -p release
+          cp target/deploy/mainframe.so release/
+          cp target/build-verification.json release/
+          tar -czf mainframe-verified-build-${{ github.sha }}.tar.gz release/
+          
+      - name: Upload to release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: maikers-mainframe/mainframe-verified-build-${{ github.sha }}.tar.gz
+          asset_name: mainframe-verified-build.tar.gz
+          asset_content_type: application/gzip
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    needs: verified-build
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Rust security audit
+        run: |
+          cargo install cargo-audit
+          cd maikers-mainframe
+          cargo audit
+          
+      - name: Check for security.txt
+        run: |
+          cd maikers-mainframe
+          if ! grep -q "solana-security-txt" programs/mainframe/Cargo.toml; then
+            echo "❌ security.txt dependency missing"
+            exit 1
+          fi
+          
+          if ! grep -q "security_txt!" programs/mainframe/src/lib.rs; then
+            echo "❌ security_txt macro not found"
+            exit 1
+          fi
+          
+          # Verify source_revision matches current commit
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          if ! grep -q "source_revision: \"$CURRENT_COMMIT\"" programs/mainframe/src/lib.rs; then
+            echo "❌ source_revision doesn't match current commit"
+            echo "Expected: $CURRENT_COMMIT"
+            exit 1
+          fi
+          
+          echo "✅ Security.txt properly configured with matching source_revision"
+

@@ -110,6 +110,9 @@ jobs:
       - name: Install JavaScript dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Update source_revision with current commit
+        run: ./scripts/update-source-revision.sh
+
       - name: Build Anchor program
         run: anchor build
 
@@ -217,6 +220,9 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: yarn install --frozen-lockfile
+
+      - name: Update source_revision with current commit
+        run: ./scripts/update-source-revision.sh
 
       - name: Build on ${{ matrix.os }}
         run: anchor build

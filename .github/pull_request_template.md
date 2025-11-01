@@ -1,94 +1,50 @@
-## Description
+# Pull Request
 
-Brief description of the changes in this PR.
+## Description
+<!-- Describe your changes in detail -->
 
 ## Type of Change
-
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] 📚 Documentation update
-- [ ] 🔧 Refactoring (no functional changes, no API changes)
-- [ ] ⚡ Performance improvement
-- [ ] 🔒 Security enhancement
-- [ ] 🧪 Test improvements
-- [ ] 🏗️ Build system changes
-- [ ] 🎨 Code style changes (formatting, missing semicolons, etc.)
-
-## Testing
-
-- [ ] Anchor tests pass (`anchor test`)
-- [ ] Integration tests updated/added
-- [ ] Manual testing completed
-- [ ] Cross-platform testing (if applicable)
-
-## Security Considerations
-
-- [ ] No new attack vectors introduced
-- [ ] Fee calculations reviewed and tested
-- [ ] Access controls validated
-- [ ] Input validation implemented
-- [ ] Integer overflow/underflow checks
-- [ ] PDA derivation security verified
-
-## Breaking Changes
-
-If this PR introduces breaking changes, please describe:
-
-- What functionality is affected?
-- How should users migrate their code?
-- What is the migration timeline?
-
-## Performance Impact
-
-- [ ] No performance impact
-- [ ] Performance improvement (describe below)
-- [ ] Performance degradation (explain and justify below)
-
-**Performance Details:**
-<!-- Describe any performance changes, benchmarks, or compute unit usage changes -->
-
-## Documentation
-
-- [ ] Code is self-documenting with clear variable/function names
-- [ ] Public APIs have doc comments
-- [ ] README updated (if needed)
-- [ ] Architecture docs updated (if needed)
-- [ ] Integration guide updated (if needed)
-
-## Dependencies
-
-- [ ] No new dependencies added
-- [ ] New dependencies are necessary and well-vetted
-- [ ] Dependency versions are pinned appropriately
-- [ ] Security audit status of new dependencies verified
+<!-- Check all that apply -->
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+- [ ] Security fix
 
 ## Checklist
 
-- [ ] Code follows the project's style guidelines
-- [ ] Self-review of the code completed
-- [ ] Code compiles without warnings
-- [ ] No sensitive information (keys, tokens, etc.) committed
-- [ ] Git commit messages are descriptive and follow conventions
-- [ ] Related issues are linked (closes #xxx)
+### Code Quality
+- [ ] My code follows the project's style guidelines
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code where necessary
+- [ ] My changes generate no new warnings or errors
 
-## Screenshots/Demo
+### Testing
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes
+- [ ] Any dependent changes have been merged and published
 
-<!-- If applicable, add screenshots or demo links to help explain your changes -->
+### Security & Build
+- [ ] I have run `yarn build:verified` successfully
+- [ ] I have verified security.txt with `yarn check:security`
+- [ ] Security.txt contacts are up to date (if modified)
+- [ ] No security vulnerabilities introduced (run `cargo audit`)
 
-## Reviewer Notes
+### Documentation
+- [ ] I have updated the documentation accordingly
+- [ ] I have added/updated inline code documentation
+- [ ] SECURITY.md is updated (if security-related changes)
 
-<!-- Any specific areas where you'd like reviewer focus or have concerns -->
+## Verified Build Info
+<!-- The CI will automatically add this, but you can include it here if testing locally -->
+
+**Build Hash:** `<will be added by CI>`
+**Program ID:** `<will be added by CI>`
+**Git Commit:** `<will be added by CI>`
 
 ## Related Issues
+<!-- Link any related issues here -->
+Closes #
 
-<!-- Link any related issues using "Closes #xxx" or "Relates to #xxx" -->
-
----
-
-**Note for Reviewers:**
-- Pay special attention to security implications
-- Verify test coverage for new functionality
-- Check for proper error handling
-- Validate fee calculation logic
-- Ensure PDA derivations are secure
+## Additional Notes
+<!-- Add any additional context about the PR here -->

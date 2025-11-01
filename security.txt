@@ -1,0 +1,23 @@
+# Canonical security.txt for Maikers Mainframe
+# https://securitytxt.org/
+
+Contact: mailto:security@maikers.com
+Contact: https://discord.gg/maikers
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://github.com/MaikersHQ/maikers-mainframe/blob/main/security.txt
+Policy: https://github.com/MaikersHQ/maikers-mainframe/blob/main/SECURITY.md
+Acknowledgments: https://github.com/MaikersHQ/maikers-mainframe/blob/main/SECURITY.md#rewards-and-recognition
+
+# Scope
+# This security policy covers vulnerabilities in the Mainframe Anchor Program,
+# Agent Management, Fee System, Access Controls, NFT Validation, Partner Collections,
+# and related infrastructure (SDK, APIs, integration points).
+#
+# Please see our full security policy for detailed information about:
+# - What to include in your report
+# - Response timeline and process
+# - Severity classification
+# - In-scope and out-of-scope items
+# - Recognition and collaboration opportunities
+

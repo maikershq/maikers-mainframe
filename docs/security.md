@@ -1,8 +1,21 @@
 # Mainframe: Program Security Model
 
+> **⚠️ Security Audit**: See [SECURITY_AUDIT_2025.md](SECURITY_AUDIT_2025.md) for details on vulnerabilities identified and fixed in November 2025.
+
 ## Security Overview
 
 The Mainframe Anchor program implements comprehensive security controls to ensure safe agent management, secure fee handling, and proper access controls. The program follows Solana best practices and includes multiple layers of validation to protect against common attack vectors.
+
+### Recent Security Improvements (November 2025)
+
+All critical and high-severity vulnerabilities have been identified and fixed:
+- ✅ Real-time NFT ownership verification (prevents stale ownership attacks)
+- ✅ Comprehensive PDA validation (prevents fake account exploits)  
+- ✅ Metaplex collection verification (validates genuine collection membership)
+- ✅ Reentrancy protection via CEI pattern (prevents state inconsistency)
+- ✅ Safe arithmetic everywhere (prevents overflow-based DOS)
+
+See [SECURITY_AUDIT_2025.md](SECURITY_AUDIT_2025.md) for complete details.
 
 ## Core Security Principles
 
@@ -100,13 +113,14 @@ pub fn validate_nft_ownership(
 
 ```rust
 impl ProtocolConfig {
-    pub fn distribute_fee(
+    pub fn distribute_fee<'info>(
         &self,
         fee_amount: u64,
-        payer: &AccountInfo,
-        protocol_treasury: &AccountInfo,
-        validator_treasury: &AccountInfo,
-        cloud_treasury: &AccountInfo,
+        payer: &AccountInfo<'info>,
+        protocol_treasury: &AccountInfo<'info>,
+        validator_treasury: &AccountInfo<'info>,
+        network_treasury: &AccountInfo<'info>,
+        system_program: &AccountInfo<'info>,
     ) -> Result<()> {
         // Validate sufficient balance before any transfers
         require!(
@@ -114,29 +128,29 @@ impl ProtocolConfig {
             MainframeError::InsufficientBalance
         );
         
-        // Validate treasury distribution percentages
-        let total_percent = self.protocol_treasury_percent + 
-                           self.validator_treasury_percent + 
-                           self.cloud_treasury_percent;
+        // Validate treasury distribution basis points
+        let total_bps = self.protocol_treasury_bps
+            .checked_add(self.validator_treasury_bps)
+            .and_then(|x| x.checked_add(self.network_treasury_bps))
+            .ok_or(MainframeError::InvalidTreasuryDistribution)?;
         require!(
-            total_percent == 100,
+            total_bps == 10_000,
             MainframeError::InvalidTreasuryDistribution
         );
         
-        // Calculate distribution amounts
-        let protocol_fee = fee_amount * self.protocol_treasury_percent as u64 / 100;
-        let validator_fee = fee_amount * self.validator_treasury_percent as u64 / 100;
-        let cloud_fee = fee_amount * self.cloud_treasury_percent as u64 / 100;
+        // Calculate distribution using basis points (1 bps = 0.01%)
+        let protocol_fee = fee_amount * self.protocol_treasury_bps as u64 / 10_000;
+        let validator_fee = fee_amount * self.validator_treasury_bps as u64 / 10_000;
+        let network_fee = fee_amount * self.network_treasury_bps as u64 / 10_000;
         
         // Handle rounding by giving remainder to protocol
-        let remainder = fee_amount - (protocol_fee + validator_fee + cloud_fee);
+        let remainder = fee_amount - (protocol_fee + validator_fee + network_fee);
         let protocol_fee_final = protocol_fee + remainder;
         
-        // Atomic transfer execution
-        **payer.try_borrow_mut_lamports()? -= fee_amount;
-        **protocol_treasury.try_borrow_mut_lamports()? += protocol_fee_final;
-        **validator_treasury.try_borrow_mut_lamports()? += validator_fee;
-        **cloud_treasury.try_borrow_mut_lamports()? += cloud_fee;
+        // Transfer to respective treasury accounts using CPI
+        transfer_lamports(payer, protocol_treasury, protocol_fee_final, system_program)?;
+        transfer_lamports(payer, validator_treasury, validator_fee, system_program)?;
+        transfer_lamports(payer, network_treasury, network_fee, system_program)?;
         
         Ok(())
     }
@@ -154,7 +168,7 @@ pub fn calculate_fee_with_validation(
     // Get base fee for operation
     let base_fee = match operation {
         "create_agent" => config.fees.create_agent,
-        "update_config" => config.fees.update_config,
+        "update_agent_config" => config.fees.update_agent_config,
         "transfer_agent" => config.fees.transfer_agent,
         _ => return Err(MainframeError::InvalidOperation.into()),
     };
@@ -243,8 +257,8 @@ pub fn safe_version_increment(current: u64) -> Result<u64> {
 | Operation | NFT Owner Required | Agent Owner Required | Protocol Authority Required | Additional Checks |
 |-----------|-------------------|---------------------|----------------------------|------------------|
 | **create_agent** | ✅ | ❌ | ❌ | Valid NFT metadata |
-| **update_config** | ❌ | ✅ | ❌ | Agent not closed |
-| **transfer_agent** | ✅ (both parties) | ✅ | ❌ | Valid ownership transfer |
+| **update_agent_config** | ❌ | ✅ | ❌ | Agent not closed |
+| **transfer_agent** | ✅  | ❌ | ❌ | Valid ownership transfer |
 | **pause_agent** | ❌ | ✅ | ❌ | Agent currently active |
 | **resume_agent** | ❌ | ✅ | ❌ | Agent currently paused |
 | **close_agent** | ❌ | ✅ | ❌ | Irreversible operation |

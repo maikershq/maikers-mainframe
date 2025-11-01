@@ -1,390 +1,173 @@
-# Mainframe: Program Quick Start Guide
+# Mainframe: Quick Start Guide
 
 ## Introduction
 
-This guide helps you get started with the Mainframe Solana program, whether you're a developer building applications or someone wanting to understand how the program works.
+Get started with the Mainframe Solana program for managing AI agents linked to verified NFT collections.
 
-## Understanding the Program
+## Understanding Mainframe
 
-### What is Mainframe?
+**What it does:**
+- Agent-to-NFT account management
+- Automated fee calculation and distribution
+- NFT ownership-based access control
+- Event emission for external systems
 
-Mainframe is a Solana Anchor program that manages AI agents linked to NFTs from verified collections. The program handles:
+**Core Operations:**
 
-- **Agent Account Management**: Creating and maintaining agent-to-NFT relationships
-- **Fee Calculation & Distribution**: Automated fee processing with collection-based tiers
-- **Access Controls**: Ensuring only NFT owners can manage their agents
-- **Event Emission**: Notifying external systems of agent lifecycle changes
-
-### Program Structure
-
-```
-Mainframe Program
-├── Agent Accounts (PDA per NFT)
-├── Protocol Configuration (Global settings)
-├── Instructions (Agent lifecycle operations)
-└── Events (External system notifications)
-```
-
-### Core Operations
-
-| Operation | Purpose | Fee | Access Required |
-|-----------|---------|-----|-----------------|
-| `create_agent` | Link NFT to agent | 0.05 SOL* | NFT ownership |
-| `update_config` | Update agent settings | 0.005 SOL* | Agent ownership |
+| Operation | Purpose | Fee | Access |
+|-----------|---------|-----|--------|
+| `create_agent` | Link NFT to agent | 0.05 SOL* | NFT owner |
+| `update_agent_config` | Update settings | 0.005 SOL* | Agent owner |
 | `transfer_agent` | Transfer ownership | 0.01 SOL* | Both parties |
-| `pause_agent` | Pause operations | FREE | Agent ownership |
-| `close_agent` | Permanent shutdown | FREE | Agent ownership |
+| `pause_agent` | Pause operations | FREE | Agent owner |
+| `close_agent` | Close permanently | FREE | Agent owner |
 
-*Fees vary by collection tier (Genesis: free, Partners: discounted)
+*Fees vary: Genesis (free), Partners (25-75% off)
 
-## Program Accounts
-
-### Agent Account Structure
-
-Each NFT can have one associated agent account:
-
-```rust
-pub struct AgentAccount {
-    pub nft_mint: Pubkey,              // NFT this agent represents
-    pub owner: Pubkey,                 // Current agent owner
-    pub collection_mint: Option<Pubkey>, // For fee calculation
-    pub metadata_uri: String,          // Off-chain configuration
-    pub status: AgentStatus,           // Active/Paused/Closed
-    pub activated_at: i64,             // Creation timestamp
-    pub updated_at: i64,               // Last modification
-    pub version: u64,                  // Configuration version
-}
-```
-
-### Protocol Configuration Account
-
-Global program settings:
-
-```rust
-pub struct ProtocolConfig {
-    pub authority: Pubkey,             // Protocol admin
-    pub fees: FeeStructure,            // Fee amounts
-    pub protocol_treasury: Pubkey,     // Treasury wallets
-    pub validator_treasury: Pubkey,
-    pub cloud_treasury: Pubkey,
-    pub treasury_percentages: [u8; 3], // Distribution: [60, 30, 10]
-    pub paused: bool,                  // Emergency pause
-    pub total_agents: u64,             // Global counter
-    pub partner_collections: Vec<PartnerCollection>, // Fee discounts
-}
-```
-
-## Getting Started as a Developer
+## For Developers
 
 ### Prerequisites
-
-- Solana CLI tools
-- Anchor framework (0.31.1+)
+- Solana CLI & Anchor framework (0.31.1+)
 - Node.js 18+
 - Basic Solana/Anchor knowledge
 
-### Development Setup
+### Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/maikershq/maikers-mainframe
 cd maikers-mainframe
-
-# Install dependencies  
 yarn install
-
-# Build the program
 anchor build
-
-# Start local validator (optional)
-solana-test-validator
-
-# Run tests
 anchor test
 ```
 
-### Program Interaction
+### Integration Options
 
-#### Account Derivation
-
-```typescript
-import { PublicKey } from '@solana/web3.js';
-
-// Derive agent PDA from NFT mint
-function deriveAgentPDA(nftMint: PublicKey, programId: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('agent'), nftMint.toBuffer()],
-    programId
-  );
-}
-
-// Derive protocol config PDA  
-function deriveProtocolConfigPDA(programId: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('protocol_config')],
-    programId
-  );
-}
+**Option 1: Use SDK (Recommended)**
+```bash
+npm install @maikers/mainframe-sdk
 ```
 
-#### Reading Account Data
+The SDK handles encryption, metadata upload, and transaction building.
 
-```typescript
-import * as anchor from '@coral-xyz/anchor';
+**Option 2: Direct Program Integration**
 
-// Read agent account
-async function getAgentAccount(
-  program: anchor.Program,
-  nftMint: PublicKey
-): Promise<AgentAccount | null> {
-  try {
-    const [agentPDA] = deriveAgentPDA(nftMint, program.programId);
-    return await program.account.agentAccount.fetch(agentPDA);
-  } catch {
-    return null; // Agent doesn't exist
-  }
-}
+Interact with the program directly using Anchor or web3.js. See [Code References](references.md) for examples.
 
-// Read protocol configuration
-async function getProtocolConfig(program: anchor.Program): Promise<ProtocolConfig> {
-  const [configPDA] = deriveProtocolConfigPDA(program.programId);
-  return await program.account.protocolConfig.fetch(configPDA);
-}
-```
+**See**: [Complete Code Examples](references.md)
 
-#### Building Transactions
+## Key Concepts
 
-```typescript
-// Create agent transaction
-async function buildCreateAgentTx(
-  program: anchor.Program,
-  nftMint: PublicKey,
-  metadataUri: string,
-  userWallet: PublicKey
-): Promise<Transaction> {
-  
-  const [agentPDA] = deriveAgentPDA(nftMint, program.programId);
-  const [configPDA] = deriveProtocolConfigPDA(program.programId);
-  
-  return await program.methods
-    .createAgent(nftMint, metadataUri)
-    .accounts({
-      agentAccount: agentPDA,
-      owner: userWallet,
-      nftTokenAccount: await getAssociatedTokenAddress(nftMint, userWallet),
-      nftMetadata: deriveMetadataAccount(nftMint),
-      protocolConfig: configPDA,
-      systemProgram: SystemProgram.programId,
-    })
-    .transaction();
-}
-```
+### Program Accounts
+- **Agent Account**: One PDA per NFT (derived from `["agent", nft_mint]`)
+- **Protocol Config**: Global settings PDA (derived from `["protocol_config"]`)
 
-## Program Events
+### Fee Structure
+- **Base fees**: 0.05 SOL (create), 0.005 SOL (update), 0.01 SOL (transfer)
+- **Genesis collection**: 100% discount (free)
+- **Partner collections**: 25-75% discount
+- **Distribution**: Configurable basis points (default: 50% protocol, 30% validators, 20% network)
 
-### Event Types
+### Events
+- `AgentCreated`: New agent activation
+- `AgentUpdated`: Configuration changes
+- `AffiliatePaid`: Commission payouts
 
-The program emits events for external systems to consume:
+Listen to events for off-chain processing and analytics.
 
-```rust
-#[event]
-pub struct AgentCreated {
-    pub agent_account: Pubkey,
-    pub nft_mint: Pubkey, 
-    pub owner: Pubkey,
-    pub collection_mint: Option<Pubkey>,
-    pub metadata_uri: String,
-    pub timestamp: i64,
-}
+## Common Workflows
 
-#[event]
-pub struct AgentUpdated {
-    pub agent_account: Pubkey,
-    pub metadata_uri: String,
-    pub old_version: u64,
-    pub new_version: u64,
-    pub timestamp: i64,
-}
-```
+### Creating an Agent
 
-### Event Monitoring
+1. User owns NFT from verified collection
+2. Prepare metadata (encrypted via SDK)
+3. Call `create_agent` instruction
+4. Pay fee (varies by collection)
+5. Receive agent account
+6. Event emitted for off-chain systems
 
-```typescript
-// Monitor program events
-function subscribeToEvents(
-  connection: Connection,
-  programId: PublicKey,
-  callback: (event: any) => void
-): void {
-  connection.onLogs(
-    programId,
-    (logs) => {
-      // Parse Anchor events from logs
-      logs.logs.forEach(log => {
-        const match = log.match(/Program log: (\w+): (.+)/);
-        if (match) {
-          const [, eventName, eventData] = match;
-          callback({ eventName, data: parseEventData(eventData) });
-        }
-      });
-    },
-    'processed'
-  );
-}
-```
+### Updating Configuration
 
-## Fee Calculation
+1. Agent owner calls `update_agent_config`
+2. Provide new metadata URI
+3. Pay update fee
+4. Version incremented
+5. Event emitted
 
-### Understanding Fee Tiers
+### Transferring Ownership
 
-```typescript
-// Calculate fee for operation
-async function calculateFee(
-  program: anchor.Program,
-  operation: string,
-  collectionMint?: PublicKey
-): Promise<number> {
-  const config = await getProtocolConfig(program);
-  
-  let baseFee = config.fees[operation] || 0;
-  
-  if (collectionMint) {
-    // Check for genesis collection (free)
-    if (collectionMint.equals(MAIKERS_COLLECTIBLES_MINT)) {
-      return 0;
-    }
-    
-    // Check for partner discount
-    const partner = config.partnerCollections.find(
-      p => p.collectionMint.equals(collectionMint)
-    );
-    
-    if (partner) {
-      const discountMultiplier = (100 - partner.discountPercent) / 100;
-      baseFee = Math.floor(baseFee * discountMultiplier);
-    }
-  }
-  
-  return baseFee;
-}
-```
+1. NFT transferred on-chain first
+2. New owner calls `transfer_agent` (one-sided operation)
+3. New owner pays transfer fee
+4. Agent ownership updated (no previous owner signature required)
+5. Event emitted
+
+**See**: [Code References](references.md)
 
 ## Testing
 
-### Local Testing
+```bash
+# Run all tests
+anchor test
 
-```typescript
-describe('Mainframe Program Tests', () => {
-  let program: anchor.Program;
-  let provider: anchor.Provider;
-  
-  before(async () => {
-    provider = anchor.AnchorProvider.env();
-    anchor.setProvider(provider);
-    program = anchor.workspace.Mainframe;
-  });
-
-  it('Creates an agent account', async () => {
-    const nftMint = new PublicKey("TestNFTMintAddress");
-    const metadataUri = "https://example.com/metadata.json";
-    
-    const tx = await buildCreateAgentTx(
-      program,
-      nftMint, 
-      metadataUri,
-      provider.wallet.publicKey
-    );
-    
-    await provider.sendAndConfirm(tx);
-    
-    // Verify agent was created
-    const agent = await getAgentAccount(program, nftMint);
-    expect(agent).toBeDefined();
-    expect(agent.metadataUri).toBe(metadataUri);
-  });
-});
+# Tests automatically clone required programs (Metaplex) from mainnet
 ```
 
-### Error Handling
+Configuration is in `Anchor.toml` under the `[[test.validator.clone]]` section.
 
-```typescript
-async function handleProgramError(error: any): Promise<void> {
-  if (error.code === 6000) {
-    throw new Error('NFT ownership verification failed');
-  } else if (error.code === 6008) {
-    throw new Error('Insufficient SOL balance for fees');
-  } else if (error.code === 6002) {
-    throw new Error('Protocol is paused');
-  } else {
-    throw new Error(`Program error: ${error.message}`);
-  }
-}
-```
+## Security
 
-## Security Considerations
+**Built-in protections:**
+- NFT ownership verification
+- Metadata validation
+- Fee validation before execution
+- Emergency pause mechanism
 
-### Access Control Validation
+**See**: [Security Model](security.md)
 
-Always validate account ownership and relationships:
+## Fee Examples
 
-```typescript
-// Validate NFT ownership before operations
-async function validateNFTOwnership(
-  connection: Connection,
-  nftMint: PublicKey,
-  expectedOwner: PublicKey
-): Promise<boolean> {
-  const tokenAccount = await getAssociatedTokenAddress(nftMint, expectedOwner);
-  const accountInfo = await connection.getTokenAccountBalance(tokenAccount);
-  
-  return accountInfo.value.uiAmount === 1;
-}
-```
+### Standard Collection
+- Create: 0.05 SOL
+- Update: 0.005 SOL
+- Transfer: 0.01 SOL
 
-### Transaction Safety
+### Genesis Collection (maikers'collectibles)
+- All operations: FREE
 
-```typescript
-// Safe transaction building with validation
-async function safeCreateAgent(
-  program: anchor.Program,
-  nftMint: PublicKey,
-  metadataUri: string,
-  userWallet: PublicKey
-): Promise<TransactionSignature> {
-  
-  // Pre-flight checks
-  await validateNFTOwnership(program.provider.connection, nftMint, userWallet);
-  
-  const fee = await calculateFee(program, 'create_agent');
-  const balance = await program.provider.connection.getBalance(userWallet);
-  
-  if (balance < fee) {
-    throw new Error('Insufficient balance for transaction');
-  }
-  
-  const tx = await buildCreateAgentTx(program, nftMint, metadataUri, userWallet);
-  return await program.provider.sendAndConfirm(tx);
-}
-```
+### Partner Collection (50% discount)
+- Create: 0.025 SOL
+- Update: 0.0025 SOL
+- Transfer: 0.005 SOL
+
+**See**: [Complete Economics](economics.md)
 
 ## Next Steps
 
-### For Application Developers
-1. Study the program account structures and instruction interfaces
-2. Build transaction construction and error handling
-3. Implement event monitoring for real-time updates
-4. Test thoroughly on devnet before mainnet deployment
+**For App Developers:**
+1. Review [Code References](references.md)
+2. Check [SDK Documentation](https://github.com/maikershq/maikers-mainframe-sdk)
+3. See [Quick Start Guide](quickstart.md)
 
-### For Integration Partners
-1. Review the partner collection integration process
-2. Understand fee calculation and distribution mechanisms
-3. Plan event consumption architecture for your use case
-4. Test integration patterns with the program
+**For Protocol Understanding:**
+1. Read [Program Specifications](program-specs.md)
+2. Review [Architecture](architecture.md)
+3. Study [Economics & Fees](economics.md)
 
-### For Protocol Contributors
-1. Review the program security model and access controls
-2. Understand the economic incentives and fee structures
-3. Study the upgrade path and governance mechanisms
-4. Contribute to testing and documentation improvements
+**For Partners:**
+1. Contact team for partner collection setup
+2. Review [Affiliate Program](affiliate.md) for revenue sharing
 
-This guide provides the foundation for working with the Mainframe program. For detailed technical specifications, see the complete documentation in the other docs files.
+## Additional Resources
+
+- **[References](references.md)** - Complete code examples
+- **[Architecture](architecture.md)** - System design
+- **[Program Specs](program-specs.md)** - Technical details
+- **[Security](security.md)** - Security practices
+- **[GitHub](https://github.com/maikershq/maikers-mainframe)** - Source code
+
+## Support
+
+- GitHub Issues: [maikers-mainframe/issues](https://github.com/maikers/mainframe/issues)
+- Documentation: [docs.maikers.com](https://docs.maikers.com)
+- Discord: [discord.gg/maikers](https://discord.gg/maikers)

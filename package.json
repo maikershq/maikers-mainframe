@@ -6,12 +6,35 @@
     "init:config": "ts-node scripts/initialize_config.ts",
     "init:config:devnet": "ts-node scripts/initialize_config.ts --cluster devnet",
     "init:config:mainnet": "ts-node scripts/initialize_config.ts --cluster mainnet",
-    "treasury:example": "ts-node scripts/treasury-example.ts"
+    "treasury:example": "ts-node scripts/treasury-example.ts",
+    "update:revision": "./scripts/update-source-revision.sh",
+    "build:verified": "./scripts/verified-build.sh",
+    "check:security": "./scripts/check-security-txt.sh",
+    "verify": "yarn build:verified && yarn check:security",
+    "test:security": "./scripts/test-security-setup.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.31.1",
-    "@solana/spl-token": "^0.4.8",
-    "bs58": "^6.0.0"
+    "@metaplex-foundation/js": "^0.20.1",
+    "@metaplex-foundation/mpl-token-metadata": "^3.2.1",
+    "@metaplex-foundation/umi": "^0.9.2",
+    "@metaplex-foundation/umi-bundle-defaults": "^0.9.2",
+    "@solana-program/system": "^0.5.0",
+    "@solana-program/token": "^0.7.0",
+    "@solana-program/token-2022": "^0.6.0",
+    "@solana/accounts": "^2.3.0",
+    "@solana/addresses": "^2.3.0",
+    "@solana/codecs": "^2.3.0",
+    "@solana/instructions": "^2.3.0",
+    "@solana/keys": "^2.3.0",
+    "@solana/kit": "^2.3.0",
+    "@solana/rpc": "^2.3.0",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/transactions": "^2.3.0",
+    "@solana/web3.js": "^1.95.7",
+    "bs58": "^6.0.0",
+    "fastestsmallesttextencoderdecoder": "^1.0.22",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",
