@@ -9,9 +9,9 @@ on:
     types: [created]
 
 env:
-  SOLANA_VERSION: "1.18.22"
+  SOLANA_VERSION: "1.18.26"
   ANCHOR_VERSION: "0.31.1"
-  RUST_VERSION: "1.75.0"
+  RUST_VERSION: "1.81"
 
 jobs:
   verified-build:
