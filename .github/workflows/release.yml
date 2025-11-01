@@ -71,7 +71,7 @@ jobs:
     name: Pre-Release Security Check
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}/ci-builder:latest
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -102,7 +102,7 @@ jobs:
     name: Build Release Artifacts
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}/ci-builder:latest
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

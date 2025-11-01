@@ -41,7 +41,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}/ci-builder:latest
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -67,13 +67,13 @@ The image is automatically built and pushed to GitHub Container Registry when:
 
 # 2. Tag for GitHub Container Registry
 docker tag maikers-mainframe-ci:latest \
-  ghcr.io/maikershq/maikers-mainframe/ci-builder:latest
+  ghcr.io/maikershq/maikers-mainframe-ci:latest
 
 # 3. Login to GitHub Container Registry
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # 4. Push to registry
-docker push ghcr.io/maikershq/maikers-mainframe/ci-builder:latest
+docker push ghcr.io/maikershq/maikers-mainframe-ci:latest
 ```
 
 ## 🔧 Customizing the Image

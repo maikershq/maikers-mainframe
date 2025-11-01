@@ -19,7 +19,7 @@ jobs:
     name: Rust Security Audit
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}/ci-builder:latest
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -63,7 +63,7 @@ jobs:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}/ci-builder:latest
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -94,7 +94,7 @@ jobs:
     name: Vulnerability Scanner
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}/ci-builder:latest
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -142,7 +142,7 @@ jobs:
     name: License Compliance
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}/ci-builder:latest
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
