@@ -9,7 +9,7 @@ on:
 env:
   NODE_VERSION: '20'
   RUST_VERSION: '1.88.0'
-  SOLANA_VERSION: '1.18.26'
+  SOLANA_VERSION: '3.0.8'
   ANCHOR_VERSION: '0.31.1'
 
 jobs:
@@ -75,9 +75,9 @@ jobs:
             ~/.local/share/solana/
           key: ${{ runner.os }}-solana-${{ env.SOLANA_VERSION }}
 
-      - name: Install Solana CLI
+      - name: Install Solana CLI (Agave)
         run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
+          sh -c "$(curl -sSfL https://release.anza.xyz/v${{ env.SOLANA_VERSION }}/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           solana --version
