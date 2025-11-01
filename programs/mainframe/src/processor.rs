@@ -1,9 +1,11 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
 use crate::constants::*;
 use crate::errors::MainframeError;
 use crate::events::*;
 use crate::instructions::*;
-use crate::state::{AgentStatus, FeeStructure, ProtocolConfig};
+use crate::state::{AgentStatus, FeeStructure, ProtocolConfig, AffiliateTier};
+use crate::utils::*;
 
 /// Initialize protocol configuration
 pub fn initialize_config(
@@ -15,11 +17,13 @@ pub fn initialize_config(
     protocol_treasury_bps: u16,
     validator_treasury_bps: u16,
     network_treasury_bps: u16,
+    affiliate_bonus_pool_bps: u16,
     max_partner_collections: u64,
     max_affiliate_bps: u16,
+    manager: Pubkey,
 ) -> Result<()> {
     // Validate that basis points sum to 100% (10,000 bps)
-    let total_bps = protocol_treasury_bps + validator_treasury_bps + network_treasury_bps;
+    let total_bps = protocol_treasury_bps + validator_treasury_bps + network_treasury_bps + affiliate_bonus_pool_bps;
     require!(total_bps == 10_000, MainframeError::InvalidTreasuryDistribution);
     
     // Validate affiliate bps doesn't exceed 100%
@@ -27,6 +31,7 @@ pub fn initialize_config(
     
     let config = &mut ctx.accounts.protocol_config;
     config.authority = ctx.accounts.authority.key();
+    config.manager = manager;
     config.fees = fees;
     config.protocol_treasury = protocol_treasury;
     config.validator_treasury = validator_treasury;
@@ -34,6 +39,7 @@ pub fn initialize_config(
     config.protocol_treasury_bps = protocol_treasury_bps;
     config.validator_treasury_bps = validator_treasury_bps;
     config.network_treasury_bps = network_treasury_bps;
+    config.affiliate_bonus_pool_bps = affiliate_bonus_pool_bps;
     config.paused = false;
     config.total_agents = 0;
     config.total_partners = 0;
@@ -43,100 +49,7 @@ pub fn initialize_config(
     Ok(())
 }
 
-/// Create new agent from NFT
-pub fn create_agent(
-    ctx: Context<CreateAgent>,
-    nft_mint: Pubkey,
-    metadata_uri: String,
-    seller_affiliate_bps: u16,
-    collection_mint: Option<Pubkey>,
-) -> Result<()> {
-    // Validate URI format
-    require!(!metadata_uri.is_empty(), MainframeError::InvalidMetadataUri);
-    require!(metadata_uri.len() <= MAX_METADATA_URI_LENGTH, MainframeError::InvalidURIFormat);
-    
-    // Validate NFT metadata account exists
-    require!(
-        ctx.accounts.nft_metadata.owner != &anchor_lang::system_program::ID || 
-        ctx.accounts.nft_metadata.lamports() > 0,
-        MainframeError::InvalidNFTMetadata
-    );
-    
-    // Calculate fee based on operation, collection, and partner discount
-    let mut fee_amount = ctx.accounts.protocol_config.calculate_base_fee("create_agent");
-    
-    // Apply genesis collection zero fees
-    if let Some(collection) = &collection_mint {
-        if *collection == MAIKERS_COLLECTIBLES_MINT {
-            fee_amount = 0;
-        } else if let Some(partner) = &ctx.accounts.partner_account {
-            // Validate partner PDA matches collection
-            require!(
-                partner.collection_mint == *collection && partner.active,
-                MainframeError::InvalidAccountRelationship
-            );
-            fee_amount = ProtocolConfig::apply_discount(fee_amount, partner.discount_percent);
-        }
-    }
-    
-    let seller_pubkey = ctx.accounts.seller.as_ref().map(|s| s.key());
-    
-    // Collect and distribute creation fee with affiliate
-    if fee_amount > 0 {
-        let seller_fee = ProtocolConfig::distribute_fee_with_affiliate(
-            &ctx.accounts.protocol_config,
-            fee_amount,
-            seller_affiliate_bps,
-            &ctx.accounts.owner.to_account_info(),
-            ctx.accounts.seller.as_ref().map(|s| s.as_ref()),
-            &ctx.accounts.protocol_treasury.to_account_info(),
-            &ctx.accounts.validator_treasury.to_account_info(),
-            &ctx.accounts.network_treasury.to_account_info(),
-            &ctx.accounts.system_program.to_account_info(),
-        )?;
-        
-        if seller_fee > 0 && seller_pubkey.is_some() {
-            emit!(AffiliatePaid {
-                agent_account: ctx.accounts.agent_account.key(),
-                seller: seller_pubkey.unwrap(),
-                affiliate_amount: seller_fee,
-                affiliate_bps: seller_affiliate_bps,
-                timestamp: Clock::get()?.unix_timestamp,
-            });
-        }
-    }
-    
-    // Initialize agent account
-    let agent_account = &mut ctx.accounts.agent_account;
-    agent_account.nft_mint = nft_mint;
-    agent_account.owner = ctx.accounts.owner.key();
-    agent_account.collection_mint = collection_mint;
-    agent_account.metadata_uri = metadata_uri.clone();
-    agent_account.status = AgentStatus::Active;
-    agent_account.activated_at = Clock::get()?.unix_timestamp;
-    agent_account.updated_at = Clock::get()?.unix_timestamp;
-    agent_account.version = 1;
-    agent_account.seller = seller_pubkey;
-    
-    // Increment protocol counter
-    ctx.accounts.protocol_config.total_agents = ctx.accounts.protocol_config.total_agents
-        .checked_add(1)
-        .ok_or(MainframeError::CounterOverflow)?;
-    
-    // Emit creation event
-    emit!(AgentCreated {
-        agent_account: ctx.accounts.agent_account.key(),
-        nft_mint,
-        owner: ctx.accounts.owner.key(),
-        collection_mint,
-        metadata_uri,
-        seller: seller_pubkey,
-        timestamp: Clock::get()?.unix_timestamp,
-        version: 1,
-    });
-    
-    Ok(())
-}
+// create_agent processor implementation in separate file for modularity
 
 /// Update agent configuration
 pub fn update_agent_config(
@@ -148,7 +61,7 @@ pub fn update_agent_config(
     require!(new_metadata_uri.len() <= MAX_METADATA_URI_LENGTH, MainframeError::InvalidURIFormat);
     
     // Calculate update fee (no partner discount for updates)
-    let fee_amount = ctx.accounts.protocol_config.calculate_base_fee("update_config");
+    let fee_amount = ctx.accounts.protocol_config.calculate_base_fee("update_agent_config");
     
     if fee_amount > 0 {
         ProtocolConfig::distribute_fee(&ctx.accounts.protocol_config,

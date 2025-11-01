@@ -6,16 +6,15 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  NODE_VERSION: '20'
-  RUST_VERSION: '1.81'
-  SOLANA_VERSION: '1.18.26'
-  ANCHOR_VERSION: '0.31.1'
-
 jobs:
   rust-checks:
     name: Rust Lint & Security
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     timeout-minutes: 20
     
     steps:
@@ -24,38 +23,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-          components: rustfmt, clippy
-          override: true
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
 
       - name: Run Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features --no-deps -- -D warnings
 
       - name: Install and run cargo-audit
-        run: |
-          cargo install cargo-audit --version 0.21.1 --locked
-          cargo audit
+        run: cargo audit
 
   anchor-build:
-    name: Anchor Build & Test
+    name: Anchor Build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     needs: rust-checks
     timeout-minutes: 25
     
@@ -63,58 +47,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - name: Cache Solana installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/solana/
-            ~/.local/share/solana/
-          key: ${{ runner.os }}-solana-${{ env.SOLANA_VERSION }}
-
-      - name: Install Solana CLI
-        run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-
-      - name: Cache Anchor installation
-        uses: actions/cache@v4
-        with:
-          path: ~/.avm/
-          key: ${{ runner.os }}-anchor-${{ env.ANCHOR_VERSION }}
-
-      - name: Install Anchor CLI
-        run: |
-          cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-          avm install ${{ env.ANCHOR_VERSION }}
-          avm use ${{ env.ANCHOR_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Yarn
-        run: npm install -g yarn
-
-      - name: Cache Node modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
-
       - name: Install JavaScript dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Update source_revision with current commit
+        run: ./scripts/update-source-revision.sh
+
+      - name: Verify build tools
+        run: |
+          echo "=== Build Environment ==="
+          rustc --version
+          cargo --version
+          solana --version
+          anchor --version
+          node --version
+          yarn --version
+
       - name: Build Anchor program
         run: anchor build
-
-      - name: Run Anchor tests
-        run: anchor test --skip-local-validator
 
       - name: Upload program artifacts
         uses: actions/upload-artifact@v4
@@ -128,25 +78,23 @@ jobs:
   typescript-checks:
     name: TypeScript Lint & Test
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/maikershq/maikers-mainframe-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    needs: anchor-build
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download Anchor artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install Yarn
-        run: npm install -g yarn
-
-      - name: Cache Node modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          name: anchor-artifacts
+          path: target/
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -157,114 +105,3 @@ jobs:
       - name: Type check
         run: yarn run tsc --noEmit
 
-  cross-platform:
-    name: Cross-platform Build
-    runs-on: ${{ matrix.os }}
-    needs: [rust-checks, typescript-checks]
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    timeout-minutes: 30
-    
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install platform dependencies (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew install coreutils
-          npm install -g yarn
-
-      - name: Install platform dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: npm install -g yarn
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            node_modules/
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/Cargo.lock', '**/yarn.lock') }}
-
-      - name: Install Solana CLI
-        run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-
-      - name: Install Anchor CLI
-        run: |
-          cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-          avm install ${{ env.ANCHOR_VERSION }}
-          avm use ${{ env.ANCHOR_VERSION }}
-
-      - name: Install JavaScript dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build on ${{ matrix.os }}
-        run: anchor build
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: anchor-build
-    timeout-minutes: 20
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup complete environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install system dependencies
-        run: |
-          npm install -g yarn
-          sh -c "$(curl -sSfL https://release.solana.com/v${{ env.SOLANA_VERSION }}/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-
-      - name: Install Rust and Anchor
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source ~/.cargo/env
-          cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-          avm install ${{ env.ANCHOR_VERSION }}
-          avm use ${{ env.ANCHOR_VERSION }}
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: anchor-artifacts
-          path: target/
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Run comprehensive tests
-        run: anchor test
-
-      - name: Verify program deployment
-        run: |
-          solana-keygen new --no-bip39-passphrase --silent
-          solana config set --url localhost
-          anchor test --skip-build

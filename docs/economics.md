@@ -8,68 +8,71 @@ The Mainframe program implements a transparent, on-chain fee structure that supp
 
 ### Base Operation Fees
 
-| Operation | Base Fee (Lamports) | SOL Equivalent | When Charged |
-|-----------|-------------------|----------------|--------------|
-| **create_agent** | 50,000,000 | 0.05 SOL | Agent creation |
-| **update_config** | 5,000,000 | 0.005 SOL | Configuration updates |
-| **transfer_agent** | 10,000,000 | 0.01 SOL | Ownership transfers |
-| **pause_agent** | 0 | 0 SOL | Always free |
-| **close_agent** | 0 | 0 SOL | Always free |
+| Operation | Base Fee (SOL) | When Charged |
+|-----------|----------------|--------------|
+| **create_agent** | 0.05 SOL | Agent creation |
+| **update_agent_config** | 0.005 SOL | Configuration updates |
+| **transfer_agent** | 0.01 SOL | Ownership transfers |
+| **pause_agent** | 0 SOL | Always free |
+| **close_agent** | 0 SOL | Always free |
 
 ### Fee Calculation Logic
 
 ```rust
 impl ProtocolConfig {
-    pub fn calculate_fee(&self, operation: &str, collection_mint: &Option<Pubkey>) -> u64 {
-        let base_fee = match operation {
-            "create_agent" => self.fees.create_agent,     // 50,000,000 lamports
-            "update_config" => self.fees.update_config,   // 5,000,000 lamports  
-            "transfer_agent" => self.fees.transfer_agent, // 10,000,000 lamports
-            "pause_agent" => 0,                          // Always free
-            "close_agent" => 0,                          // Always free
+    pub fn calculate_base_fee(&self, operation: &str) -> u64 {
+        match operation {
+            "create_agent" => self.fees.create_agent,           // 50,000,000 lamports
+            "update_agent_config" => self.fees.update_agent_config, // 5,000,000 lamports  
+            "transfer_agent" => self.fees.transfer_agent,       // 10,000,000 lamports
+            "pause_agent" => self.fees.pause_agent,             // 0 - Always free
+            "close_agent" => self.fees.close_agent,             // 0 - Always free
+            "execute_action" => self.fees.execute_action,       // 0 - Always free
             _ => 0,
-        };
-        
-        // Apply collection-based discounts
-        if let Some(collection) = collection_mint {
-            // Genesis collection: zero fees
-            if *collection == MAIKERS_COLLECTIBLES_MINT {
-                return 0;
-            }
-            
-            // Partner collection discounts
-            for partner in &self.partner_collections {
-                if partner.collection_mint == *collection {
-                    let discount_multiplier = 100 - partner.discount_percent as u64;
-                    return base_fee * discount_multiplier / 100;
-                }
-            }
         }
-        
-        base_fee
+    }
+    
+    pub fn apply_discount(base_fee: u64, discount_percent: u8) -> u64 {
+        if discount_percent >= 100 {
+            return 0;
+        }
+        let discount_multiplier = 100 - discount_percent as u64;
+        base_fee * discount_multiplier / 100
     }
 }
+
+// Fee calculation with collection discounts is done in processors:
+// 1. Get base fee from calculate_base_fee
+// 2. Check if collection matches genesis_collection_mint (100% discount)
+// 3. Look up PartnerCollectionAccount PDA by collection_mint
+// 4. Apply discount_percent from partner account
 ```
 
 ## Collection-Based Fee Tiers
 
 ### Genesis Collection (maikers'collectibles)
 - **Fee Discount**: 100% (All operations free)
-- **Collection Mint**: `MAIKERS_COLLECTIBLES_MINT` constant in program
-- **Validation**: Hardcoded in program for zero fees
+- **Storage**: `genesis_collection_mint` field in ProtocolConfig
+- **Validation**: Checked in create_agent processor for zero fees
 
 ### Partner Collections
 - **Fee Discount**: Variable (25-75% off base fees)
-- **Storage**: `partner_collections` Vec in ProtocolConfig account
-- **Management**: Protocol authority can add/remove partners
+- **Storage**: Separate PDA accounts (PartnerCollectionAccount)
+- **Management**: Protocol authority can add/remove partners via instructions
 
 ```rust
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct PartnerCollection {
+#[account]
+pub struct PartnerCollectionAccount {
     pub collection_mint: Pubkey,      // Collection identifier
     pub discount_percent: u8,         // 0-100 percentage discount
-    pub name: String,                 // Reference name (max 50 chars)
+    pub name: String,                 // Partner name (max 50 chars)
+    pub active: bool,                 // Active status flag
+    pub added_at: i64,                // Timestamp when added
+    pub bump: u8,                     // PDA bump seed
 }
+
+// PDA derivation:
+// seeds = [b"partner", collection_mint.as_ref()]
 ```
 
 ### Standard Collections
@@ -78,49 +81,98 @@ pub struct PartnerCollection {
 
 ## Automatic Fee Distribution
 
-### Distribution Percentages
+### Distribution Basis Points
 
-The program automatically distributes collected fees across three treasury accounts:
+The program automatically distributes collected fees across three treasury accounts using basis points (1 bps = 0.01%):
 
 ```rust
 pub struct ProtocolConfig {
-    pub protocol_treasury_percent: u8,    // Default: 60%
-    pub validator_treasury_percent: u8,   // Default: 30%  
-    pub cloud_treasury_percent: u8,       // Default: 10%
-    // Percentages must sum to 100%
+    pub protocol_treasury_bps: u16,         // Default: 5000 (50%)
+    pub validator_treasury_bps: u16,        // Default: 3000 (30%)  
+    pub network_treasury_bps: u16,          // Default: 2000 (20%)
+    // Basis points must sum to 10,000 (100%)
 }
+```
+
+**Note**: Affiliate commissions are paid separately before treasury distribution.
+
+### Distribution Breakdown
+
+**Standard Treasury Distribution:**
+```
+Agent Activation Fee: 0.05 SOL
+├─ Affiliate Commission: Variable (0-50% based on tier, if applicable)
+└─ Remaining Fee Distribution:
+   ├─ Protocol Treasury: 50% (5000 bps)
+   ├─ Validator Treasury: 30% (3000 bps)
+   └─ Network Treasury: 20% (2000 bps)
+```
+
+**Example without Affiliate:**
+```
+Total Fee: 0.05 SOL (50,000,000 lamports)
+├─ Protocol: 0.025 SOL (50%)
+├─ Validators: 0.015 SOL (30%)
+└─ Network: 0.010 SOL (20%)
+```
+
+**Example with Bronze Affiliate (15%):**
+```
+Total Fee: 0.05 SOL (50,000,000 lamports)
+├─ Bronze Affiliate: 0.0075 SOL (15%)
+└─ Remaining: 0.0425 SOL
+   ├─ Protocol: 0.02125 SOL (50%)
+   ├─ Validators: 0.01275 SOL (30%)
+   └─ Network: 0.0085 SOL (20%)
+```
+
+**Example with Diamond Affiliate (50%):**
+```
+Total Fee: 0.05 SOL (50,000,000 lamports)
+├─ Diamond Affiliate: 0.025 SOL (50%)
+└─ Remaining: 0.025 SOL
+   ├─ Protocol: 0.0125 SOL (50%)
+   ├─ Validators: 0.0075 SOL (30%)
+   └─ Network: 0.005 SOL (20%)
 ```
 
 ### Distribution Implementation
 
 ```rust
 impl ProtocolConfig {
-    pub fn distribute_fee(
+    pub fn distribute_fee<'info>(
         &self,
         fee_amount: u64,
-        payer: &AccountInfo,
-        protocol_treasury: &AccountInfo,
-        validator_treasury: &AccountInfo,
-        cloud_treasury: &AccountInfo,
+        payer: &AccountInfo<'info>,
+        protocol_treasury: &AccountInfo<'info>,
+        validator_treasury: &AccountInfo<'info>,
+        network_treasury: &AccountInfo<'info>,
+        system_program: &AccountInfo<'info>,
     ) -> Result<()> {
         if fee_amount == 0 {
             return Ok(());
         }
         
-        // Calculate distribution amounts
-        let protocol_fee = fee_amount * self.protocol_treasury_percent as u64 / 100;
-        let validator_fee = fee_amount * self.validator_treasury_percent as u64 / 100;
-        let cloud_fee = fee_amount * self.cloud_treasury_percent as u64 / 100;
+        // Validate basis points sum to 10,000 (100%)
+        let total_bps = self.protocol_treasury_bps
+            .checked_add(self.validator_treasury_bps)
+            .and_then(|x| x.checked_add(self.network_treasury_bps))
+            .ok_or(MainframeError::InvalidTreasuryDistribution)?;
+        require!(total_bps == 10_000, MainframeError::InvalidTreasuryDistribution);
+        
+        // Calculate distribution using basis points (1 bps = 0.01%)
+        let protocol_fee = fee_amount * self.protocol_treasury_bps as u64 / 10_000;
+        let validator_fee = fee_amount * self.validator_treasury_bps as u64 / 10_000;
+        let network_fee = fee_amount * self.network_treasury_bps as u64 / 10_000;
         
         // Handle rounding (remainder goes to protocol treasury)
-        let remainder = fee_amount - (protocol_fee + validator_fee + cloud_fee);
+        let remainder = fee_amount - (protocol_fee + validator_fee + network_fee);
         let protocol_fee_final = protocol_fee + remainder;
         
-        // Atomic distribution
-        **payer.try_borrow_mut_lamports()? -= fee_amount;
-        **protocol_treasury.try_borrow_mut_lamports()? += protocol_fee_final;
-        **validator_treasury.try_borrow_mut_lamports()? += validator_fee;
-        **cloud_treasury.try_borrow_mut_lamports()? += cloud_fee;
+        // Transfer to respective treasury accounts using CPI
+        transfer_lamports(payer, protocol_treasury, protocol_fee_final, system_program)?;
+        transfer_lamports(payer, validator_treasury, validator_fee, system_program)?;
+        transfer_lamports(payer, network_treasury, network_fee, system_program)?;
         
         Ok(())
     }
@@ -148,13 +200,16 @@ pub fn validate_fee_payment(
 
 ```rust
 pub fn validate_treasury_distribution(
-    protocol_percent: u8,
-    validator_percent: u8,
-    cloud_percent: u8
+    protocol_bps: u16,
+    validator_bps: u16,
+    network_bps: u16
 ) -> Result<()> {
-    let total = protocol_percent + validator_percent + cloud_percent;
+    let total = protocol_bps
+        .checked_add(validator_bps)
+        .and_then(|x| x.checked_add(network_bps))
+        .ok_or(MainframeError::InvalidTreasuryDistribution)?;
     require!(
-        total == 100,
+        total == 10_000,
         MainframeError::InvalidTreasuryDistribution
     );
     Ok(())
@@ -235,34 +290,96 @@ pub fn update_fees(
 
 pub fn update_treasury_distribution(
     ctx: Context<UpdateTreasuryDistribution>,
-    protocol_percent: u8,
-    validator_percent: u8,
-    cloud_percent: u8,
+    protocol_bps: u16,
+    validator_bps: u16,
+    network_bps: u16,
 ) -> Result<()> {
-    // Validate percentages sum to 100
-    validate_treasury_distribution(protocol_percent, validator_percent, cloud_percent)?;
+    // Validate basis points sum to 10,000
+    validate_treasury_distribution(protocol_bps, validator_bps, network_bps)?;
     
     let config = &mut ctx.accounts.protocol_config;
-    config.protocol_treasury_percent = protocol_percent;
-    config.validator_treasury_percent = validator_percent;
-    config.cloud_treasury_percent = cloud_percent;
+    config.protocol_treasury_bps = protocol_bps;
+    config.validator_treasury_bps = validator_bps;
+    config.network_treasury_bps = network_bps;
     
     Ok(())
 }
 ```
 
+## Affiliate Bonus Pool Economics
+
+### Bonus Pool Funding
+
+The affiliate bonus pool is continuously funded from protocol fees:
+
+**Accumulation Rate:**
+```
+10% of all remaining fees (after affiliate commission) → Bonus Pool
+
+Monthly Example (1,000 activations):
+├─ Total fees: 50 SOL
+├─ Average affiliate commission: 15 SOL (varies by tier)
+├─ Remaining: 35 SOL
+└─ Bonus pool: 3.5 SOL (10% of remaining)
+```
+
+### Affiliate Program Economics
+
+The affiliate program operates separately from the treasury distribution:
+
+**Commission Structure:**
+- Affiliates earn 15-50% commission based on their tier
+- Commission is paid directly from the activation fee
+- Remaining fee (after affiliate commission) goes to treasury distribution
+
+**Affiliate Tiers:**
+- Bronze (0-99 sales): 15% commission (1500 bps)
+- Silver (100-499 sales): 20% commission (2000 bps)
+- Gold (500-1,999 sales): 30% commission (3000 bps)
+- Platinum (2,000-9,999 sales): 40% commission (4000 bps)
+- Diamond (10,000+ sales): 50% commission (5000 bps)
+
+### Economic Sustainability
+
+**Pool Balance Management:**
+```
+Monthly Inflow: 3.5 SOL (from fees)
+Monthly Outflow:
+├─ Milestones claimed: ~1.3 SOL
+├─ Referral earnings: ~0.9 SOL
+├─ Season prizes (quarterly): ~0.65 SOL/month
+└─ Flash bonuses: ~0.45 SOL
+
+Net: +0.2 SOL growth per month
+Annual surplus: ~2.4 SOL
+```
+
+The 10% allocation ensures sustainable long-term funding for all affiliate incentives.
+
 ## Economic Incentives
 
 ### Fee Tier Comparison
 
-For an agent creation (0.01 SOL base fee):
+For an agent creation (0.05 SOL base fee):
 
 | Collection Type | Fee Amount | Discount | Annual Cost (5 agents) |
 |----------------|------------|----------|------------------------|
 | **Genesis** | 0 SOL | 100% | 0 SOL |
-| **Strategic Partner** | 0.0025 SOL | 75% | 0.0125 SOL |
-| **Verified Partner** | 0.005 SOL | 50% | 0.025 SOL |
-| **Standard** | 0.01 SOL | 0% | 0.05 SOL |
+| **Strategic Partner** | 0.0125 SOL | 75% | 0.0625 SOL |
+| **Verified Partner** | 0.025 SOL | 50% | 0.125 SOL |
+| **Standard** | 0.05 SOL | 0% | 0.25 SOL |
+
+### Affiliate Tier Impact
+
+**For Affiliates (Standard Collection, 0.05 SOL fee):**
+
+| Tier | Per Sale | 100 Sales | 1,000 Sales | 10,000 Sales |
+|------|----------|-----------|-------------|--------------|
+| Bronze (15%) | 0.0075 SOL | 0.75 SOL | 7.5 SOL | 75 SOL |
+| Silver (20%) | 0.010 SOL | 1 SOL | 10 SOL | 100 SOL |
+| Gold (30%) | 0.015 SOL | 1.5 SOL | 15 SOL | 150 SOL |
+| Platinum (40%) | 0.020 SOL | 2 SOL | 20 SOL | 200 SOL |
+| Diamond (50%) | 0.025 SOL | 2.5 SOL | 25 SOL | 250 SOL |
 
 ### Revenue Transparency
 
@@ -276,9 +393,9 @@ pub fn get_protocol_stats(ctx: Context<GetProtocolStats>) -> Result<ProtocolStat
         total_agents: config.total_agents,
         fee_structure: config.fees.clone(),
         treasury_distribution: TreasuryDistribution {
-            protocol_percent: config.protocol_treasury_percent,
-            validator_percent: config.validator_treasury_percent,
-            cloud_percent: config.cloud_treasury_percent,
+            protocol_bps: config.protocol_treasury_bps,
+            validator_bps: config.validator_treasury_bps,
+            network_bps: config.network_treasury_bps,
         },
         partner_collections_count: config.partner_collections.len(),
         protocol_paused: config.paused,
