@@ -15,7 +15,7 @@ security_txt! {
     policy: "https://github.com/maikershq/maikers-mainframe/blob/main/SECURITY.md",
     preferred_languages: "en",
     source_code: "https://github.com/maikershq/maikers-mainframe",
-    source_revision: "4fbeee47e3d548c59ba7f3d4abf6e90ccf8414e8",
+    source_revision: "fdff413901e4893a90d7f1bc2f32558c1ea0dcc6",
     auditors: "To be announced",
     acknowledgements: "Thank you to our security researchers and the Solana community!"
 }
@@ -45,31 +45,10 @@ pub mod mainframe {
     pub fn initialize_config(
         ctx: Context<InitializeConfig>,
         fees: FeeStructure,
-        genesis_collection_mint: Pubkey,
-        protocol_treasury: Pubkey,
-        validator_treasury: Pubkey,
-        network_treasury: Pubkey,
-        protocol_treasury_bps: u16,
-        validator_treasury_bps: u16,
-        network_treasury_bps: u16,
-        max_partner_collections: u64,
-        max_affiliate_bps: u16,
-        manager: Pubkey,
+        treasury_params: processors::config::TreasuryParams,
+        config_params: processors::config::ConfigParams,
     ) -> Result<()> {
-        processors::config::initialize_config(
-            ctx,
-            fees,
-            genesis_collection_mint,
-            protocol_treasury,
-            validator_treasury,
-            network_treasury,
-            protocol_treasury_bps,
-            validator_treasury_bps,
-            network_treasury_bps,
-            max_partner_collections,
-            max_affiliate_bps,
-            manager,
-        )
+        processors::config::initialize_config(ctx, fees, treasury_params, config_params)
     }
 
     /// Create new agent from NFT

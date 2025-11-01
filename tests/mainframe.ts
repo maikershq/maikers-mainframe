@@ -1,14 +1,20 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Mainframe } from "../target/types/mainframe";
-import { 
-  createMint,
-  createAccount,
-  mintTo,
-} from "@solana/spl-token";
+import { createMint, createAccount, mintTo } from "@solana/spl-token";
 import { expect } from "chai";
-import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { createNFTWithMetadata, createCollectionNFT, getMetadataPDA, getMasterEditionPDA } from "./metaplex-helpers";
+import {
+  PublicKey,
+  Keypair,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
+import {
+  createNFTWithMetadata,
+  createCollectionNFT,
+  getMetadataPDA,
+  getMasterEditionPDA,
+} from "./metaplex-helpers";
 import { loadOrCreateKeypair } from "./test-keys";
 
 describe("Mainframe Security & Performance Tests", () => {
@@ -30,11 +36,11 @@ describe("Mainframe Security & Performance Tests", () => {
   let genesisCollectionMint: PublicKey;
   let genesisMint: PublicKey;
   let genesisTokenAccount: PublicKey;
-  
+
   let partnerMint: PublicKey;
   let partnerTokenAccount: PublicKey;
   let partnerCollectionMint: PublicKey;
-  
+
   let standardMint: PublicKey;
   let standardTokenAccount: PublicKey;
 
@@ -47,14 +53,13 @@ describe("Mainframe Security & Performance Tests", () => {
 
   // Fee structure
   const fees = {
-    createAgent: new anchor.BN(0.05 * LAMPORTS_PER_SOL),     // 0.05 SOL
-    updateAgentConfig: new anchor.BN(0.005 * LAMPORTS_PER_SOL),   // 0.005 SOL
-    transferAgent: new anchor.BN(0.01 * LAMPORTS_PER_SOL),   // 0.01 SOL
-    pauseAgent: new anchor.BN(0),                             // Free
-    closeAgent: new anchor.BN(0),                             // Free
-    executeAction: new anchor.BN(0),                          // Free
+    createAgent: new anchor.BN(0.05 * LAMPORTS_PER_SOL), // 0.05 SOL
+    updateAgentConfig: new anchor.BN(0.005 * LAMPORTS_PER_SOL), // 0.005 SOL
+    transferAgent: new anchor.BN(0.01 * LAMPORTS_PER_SOL), // 0.01 SOL
+    pauseAgent: new anchor.BN(0), // Free
+    closeAgent: new anchor.BN(0), // Free
+    executeAction: new anchor.BN(0), // Free
   };
-
 
   before(async () => {
     console.log("Setting up enhanced security test environment...");
@@ -71,19 +76,31 @@ describe("Mainframe Security & Performance Tests", () => {
     networkTreasury = Keypair.generate();
 
     // Airdrop SOL to test accounts and confirm
-    const airdrop1 = await provider.connection.requestAirdrop(authority.publicKey, 10 * LAMPORTS_PER_SOL);
-    const airdrop2 = await provider.connection.requestAirdrop(protocolAuthority.publicKey, 10 * LAMPORTS_PER_SOL);
-    const airdrop3 = await provider.connection.requestAirdrop(user1.publicKey, 5 * LAMPORTS_PER_SOL);
-    const airdrop4 = await provider.connection.requestAirdrop(user2.publicKey, 5 * LAMPORTS_PER_SOL);
-    
+    const airdrop1 = await provider.connection.requestAirdrop(
+      authority.publicKey,
+      10 * LAMPORTS_PER_SOL
+    );
+    const airdrop2 = await provider.connection.requestAirdrop(
+      protocolAuthority.publicKey,
+      10 * LAMPORTS_PER_SOL
+    );
+    const airdrop3 = await provider.connection.requestAirdrop(
+      user1.publicKey,
+      5 * LAMPORTS_PER_SOL
+    );
+    const airdrop4 = await provider.connection.requestAirdrop(
+      user2.publicKey,
+      5 * LAMPORTS_PER_SOL
+    );
+
     // Wait for all airdrops to confirm
     await provider.connection.confirmTransaction(airdrop1);
     await provider.connection.confirmTransaction(airdrop2);
     await provider.connection.confirmTransaction(airdrop3);
     await provider.connection.confirmTransaction(airdrop4);
-    
+
     // Additional wait for good measure
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Generate PDAs
     [protocolConfigPda] = PublicKey.findProgramAddressSync(
@@ -100,7 +117,7 @@ describe("Mainframe Security & Performance Tests", () => {
     // Since we don't require collection.verified = true, we just need any valid collection mint
     genesisCollectionMint = anchor.web3.Keypair.generate().publicKey;
     console.log(`Genesis collection: ${genesisCollectionMint.toBase58()}`);
-    
+
     // Initialize protocol config (skip if already initialized from other tests)
     try {
       await program.methods
@@ -133,7 +150,9 @@ describe("Mainframe Security & Performance Tests", () => {
         .rpc();
       console.log("✓ Protocol config initialized");
     } catch (e) {
-      console.log("✓ Protocol config already initialized (reusing from previous test run)");
+      console.log(
+        "✓ Protocol config already initialized (reusing from previous test run)"
+      );
     }
 
     // Create test NFTs (simplified)
@@ -145,7 +164,7 @@ describe("Mainframe Security & Performance Tests", () => {
   async function setupTestNFTs() {
     // Create real NFTs with Metaplex metadata for proper validation
     console.log("Creating NFTs with Metaplex metadata...");
-    
+
     // 1. Genesis Agent NFT (with collection field, no verification needed)
     const genesisNFT = await createNFTWithMetadata({
       provider,
@@ -208,8 +227,10 @@ describe("Mainframe Security & Performance Tests", () => {
     it("Initializes protocol config with treasury distribution validation", async () => {
       // Protocol config is already initialized (either in this test's before() or affiliate tests)
       // This test verifies the initialization was successful
-      
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
+
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       // Authority could be either protocolAuthority or provider.wallet depending on test order
       expect(config.authority).to.not.be.null;
       expect(config.maxPartnerCollections.toNumber()).to.equal(100);
@@ -241,10 +262,12 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([protocolAuthority])
           .rpc();
-        
+
         expect.fail("Should have failed with invalid treasury distribution");
       } catch (error) {
-        expect(error.toString()).to.include("Treasury distribution basis points must sum to 10,000 (100%)");
+        expect(error.toString()).to.include(
+          "Treasury distribution basis points must sum to 10,000 (100%)"
+        );
       }
     });
   });
@@ -271,11 +294,17 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([protocolAuthority])
         .rpc();
 
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       expect(config.totalPartners.toNumber()).to.equal(1);
-      
-      const partner = await program.account.partnerCollectionAccount.fetch(partnerPda);
-      expect(partner.collectionMint.toString()).to.equal(partnerCollectionMint.toString());
+
+      const partner = await program.account.partnerCollectionAccount.fetch(
+        partnerPda
+      );
+      expect(partner.collectionMint.toString()).to.equal(
+        partnerCollectionMint.toString()
+      );
       expect(partner.discountPercent).to.equal(50);
       expect(partner.name).to.equal("Test Partner");
       expect(partner.active).to.be.true;
@@ -289,11 +318,7 @@ describe("Mainframe Security & Performance Tests", () => {
 
       try {
         await program.methods
-          .addPartnerCollection(
-            partnerCollectionMint,
-            75,
-            "Duplicate Partner"
-          )
+          .addPartnerCollection(partnerCollectionMint, 75, "Duplicate Partner")
           .accounts({
             partnerAccount: partnerPda,
             protocolConfig: protocolConfigPda,
@@ -302,7 +327,7 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([protocolAuthority])
           .rpc();
-        
+
         expect.fail("Should have failed - account already exists");
       } catch (error) {
         expect(error.toString()).to.include("already in use");
@@ -315,7 +340,7 @@ describe("Mainframe Security & Performance Tests", () => {
         [Buffer.from("partner"), testCollection.toBuffer()],
         program.programId
       );
-      
+
       try {
         await program.methods
           .addPartnerCollection(
@@ -331,7 +356,7 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([protocolAuthority])
           .rpc();
-        
+
         expect.fail("Should have failed with invalid discount");
       } catch (error) {
         expect(error.toString()).to.include("InvalidDiscountPercent");
@@ -341,17 +366,17 @@ describe("Mainframe Security & Performance Tests", () => {
     it("Adds multiple partner collections", async () => {
       const collection2 = Keypair.generate().publicKey;
       const collection3 = Keypair.generate().publicKey;
-      
+
       const [partner2Pda] = PublicKey.findProgramAddressSync(
         [Buffer.from("partner"), collection2.toBuffer()],
         program.programId
       );
-      
+
       const [partner3Pda] = PublicKey.findProgramAddressSync(
         [Buffer.from("partner"), collection3.toBuffer()],
         program.programId
       );
-      
+
       await program.methods
         .addPartnerCollection(collection2, 25, "Silver Partner")
         .accounts({
@@ -374,33 +399,47 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([protocolAuthority])
         .rpc();
 
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       expect(config.totalPartners.toNumber()).to.equal(3);
-      
-      const partner2 = await program.account.partnerCollectionAccount.fetch(partner2Pda);
-      expect(partner2.collectionMint.toString()).to.equal(collection2.toString());
+
+      const partner2 = await program.account.partnerCollectionAccount.fetch(
+        partner2Pda
+      );
+      expect(partner2.collectionMint.toString()).to.equal(
+        collection2.toString()
+      );
       expect(partner2.discountPercent).to.equal(25);
       expect(partner2.name).to.equal("Silver Partner");
-      
-      const partner3 = await program.account.partnerCollectionAccount.fetch(partner3Pda);
-      expect(partner3.collectionMint.toString()).to.equal(collection3.toString());
+
+      const partner3 = await program.account.partnerCollectionAccount.fetch(
+        partner3Pda
+      );
+      expect(partner3.collectionMint.toString()).to.equal(
+        collection3.toString()
+      );
       expect(partner3.discountPercent).to.equal(75);
       expect(partner3.name).to.equal("Gold Partner");
-      
-      console.log(`Partner collections added: ${config.totalPartners.toNumber()} total`);
+
+      console.log(
+        `Partner collections added: ${config.totalPartners.toNumber()} total`
+      );
     });
 
     it("Removes specific partner collection", async () => {
-      const configBefore = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const configBefore = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       const initialCount = configBefore.totalPartners.toNumber();
-      
+
       // Get one of the added collections
       const collection2 = Keypair.generate().publicKey;
       const [partner2Pda] = PublicKey.findProgramAddressSync(
         [Buffer.from("partner"), collection2.toBuffer()],
         program.programId
       );
-      
+
       // First add it
       await program.methods
         .addPartnerCollection(collection2, 30, "To Be Removed")
@@ -412,7 +451,7 @@ describe("Mainframe Security & Performance Tests", () => {
         })
         .signers([protocolAuthority])
         .rpc();
-      
+
       // Now remove it
       await program.methods
         .removePartnerCollection(collection2)
@@ -424,9 +463,11 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([protocolAuthority])
         .rpc();
 
-      const configAfter = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const configAfter = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       expect(configAfter.totalPartners.toNumber()).to.equal(initialCount);
-      
+
       // Verify account is closed (should fail to fetch)
       try {
         await program.account.partnerCollectionAccount.fetch(partner2Pda);
@@ -434,8 +475,10 @@ describe("Mainframe Security & Performance Tests", () => {
       } catch (error) {
         expect(error.toString()).to.include("Account does not exist");
       }
-      
-      console.log(`Partner collection removed. Remaining: ${configAfter.totalPartners.toNumber()}`);
+
+      console.log(
+        `Partner collection removed. Remaining: ${configAfter.totalPartners.toNumber()}`
+      );
     });
 
     it("Fails to remove non-existent collection", async () => {
@@ -444,7 +487,7 @@ describe("Mainframe Security & Performance Tests", () => {
         [Buffer.from("partner"), nonExistentCollection.toBuffer()],
         program.programId
       );
-      
+
       try {
         await program.methods
           .removePartnerCollection(nonExistentCollection)
@@ -455,7 +498,7 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([protocolAuthority])
           .rpc();
-        
+
         expect.fail("Should have failed - collection doesn't exist");
       } catch (error) {
         expect(error.toString()).to.include("AccountNotInitialized");
@@ -463,47 +506,56 @@ describe("Mainframe Security & Performance Tests", () => {
     });
 
     it("Verifies partner discount calculation (50% off)", async () => {
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
       const baseFee = fees.createAgent.toNumber();
       const discountPercent = 50;
-      const expectedDiscountedFee = baseFee * (100 - discountPercent) / 100;
-      
+      const expectedDiscountedFee = (baseFee * (100 - discountPercent)) / 100;
+
       expect(expectedDiscountedFee).to.equal(baseFee / 2);
-      
-      console.log(`Base fee: ${baseFee}, Partner fee (50% off): ${expectedDiscountedFee}`);
+
+      console.log(
+        `Base fee: ${baseFee}, Partner fee (50% off): ${expectedDiscountedFee}`
+      );
     });
 
     it("Verifies different discount tiers", async () => {
       const baseFee = fees.createAgent.toNumber();
-      
+
       const discounts = [
         { percent: 25, expectedMultiplier: 0.75 },
-        { percent: 50, expectedMultiplier: 0.50 },
+        { percent: 50, expectedMultiplier: 0.5 },
         { percent: 75, expectedMultiplier: 0.25 },
-        { percent: 100, expectedMultiplier: 0.00 },
+        { percent: 100, expectedMultiplier: 0.0 },
       ];
-      
+
       discounts.forEach(({ percent, expectedMultiplier }) => {
-        const calculatedFee = baseFee * (100 - percent) / 100;
+        const calculatedFee = (baseFee * (100 - percent)) / 100;
         const expectedFee = baseFee * expectedMultiplier;
         expect(calculatedFee).to.equal(expectedFee);
       });
-      
-      console.log("Verified discount tier calculations for 25%, 50%, 75%, 100%");
+
+      console.log(
+        "Verified discount tier calculations for 25%, 50%, 75%, 100%"
+      );
     });
 
     it("Prevents unauthorized partner collection operations", async () => {
       const unauthorizedUser = Keypair.generate();
-      await provider.connection.requestAirdrop(unauthorizedUser.publicKey, 1 * LAMPORTS_PER_SOL);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await provider.connection.requestAirdrop(
+        unauthorizedUser.publicKey,
+        1 * LAMPORTS_PER_SOL
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       const testCollection = Keypair.generate().publicKey;
       const [partnerPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("partner"), testCollection.toBuffer()],
         program.programId
       );
-      
+
       try {
         await program.methods
           .addPartnerCollection(testCollection, 30, "Unauthorized")
@@ -515,7 +567,7 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([unauthorizedUser])
           .rpc();
-        
+
         expect.fail("Should have failed - unauthorized");
       } catch (error) {
         expect(error.toString()).to.include("Unauthorized");
@@ -524,18 +576,22 @@ describe("Mainframe Security & Performance Tests", () => {
   });
 
   describe("Agent Creation with Enhanced Security", () => {
-    it("Creates genesis agent with zero fees (genesis benefit)", async function() {
+    it("Creates genesis agent with zero fees (genesis benefit)", async function () {
       // Get actual treasury addresses from protocol config
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
-      const protocolBalanceBefore = await provider.connection.getBalance(config.protocolTreasury);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
+      const protocolBalanceBefore = await provider.connection.getBalance(
+        config.protocolTreasury
+      );
       const genesisMetadata = getMetadataPDA(genesisMint);
 
       await program.methods
         .createAgent(
-          genesisMint, 
+          genesisMint,
           "https://arweave.net/genesis-agent-config",
-          genesisCollectionMint  // Genesis collection (zero fees)
+          genesisCollectionMint // Genesis collection (zero fees)
         )
         .accounts({
           agentAccount: genesisAgentPda,
@@ -560,40 +616,54 @@ describe("Mainframe Security & Performance Tests", () => {
       const agent = await program.account.agentAccount.fetch(genesisAgentPda);
       expect(agent.nftMint.toString()).to.equal(genesisMint.toString());
       expect(agent.owner.toString()).to.equal(user1.publicKey.toString());
-      expect(agent.metadataUri).to.equal("https://arweave.net/genesis-agent-config");
+      expect(agent.metadataUri).to.equal(
+        "https://arweave.net/genesis-agent-config"
+      );
       expect(agent.status).to.deep.equal({ active: {} });
       expect(agent.version.toNumber()).to.be.at.least(1);
 
       // Verify protocol stats updated
-      const configAfter = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const configAfter = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       expect(configAfter.totalAgents.toNumber()).to.be.at.least(1);
 
       // Genesis should have zero fees regardless of calculation
-      const protocolBalanceAfter = await provider.connection.getBalance(config.protocolTreasury);
+      const protocolBalanceAfter = await provider.connection.getBalance(
+        config.protocolTreasury
+      );
       expect(protocolBalanceAfter).to.equal(protocolBalanceBefore);
     });
 
     it("Creates partner agent with discounted fees", async () => {
       // Get actual treasury addresses from protocol config
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
-      const protocolBalanceBefore = await provider.connection.getBalance(config.protocolTreasury);
-      const validatorBalanceBefore = await provider.connection.getBalance(config.validatorTreasury);
-      const networkBalanceBefore = await provider.connection.getBalance(config.networkTreasury);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
+      const protocolBalanceBefore = await provider.connection.getBalance(
+        config.protocolTreasury
+      );
+      const validatorBalanceBefore = await provider.connection.getBalance(
+        config.validatorTreasury
+      );
+      const networkBalanceBefore = await provider.connection.getBalance(
+        config.networkTreasury
+      );
+
       // Derive partner PDA
       const [partnerPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("partner"), partnerCollectionMint.toBuffer()],
         program.programId
       );
-      
+
       const partnerMetadata = getMetadataPDA(partnerMint);
-      
+
       await program.methods
         .createAgent(
           partnerMint,
           "https://arweave.net/partner-agent-config",
-          partnerCollectionMint  // collection_mint (partner collection)
+          partnerCollectionMint // collection_mint (partner collection)
         )
         .accounts({
           agentAccount: partnerAgentPda,
@@ -616,24 +686,34 @@ describe("Mainframe Security & Performance Tests", () => {
 
       // Partner discount applied via partner_account PDA
       // This is acceptable as the core security features are still tested
-      console.log("Partner agent created - collection detection simplified for security testing");
+      console.log(
+        "Partner agent created - collection detection simplified for security testing"
+      );
     });
 
     it("Creates standard agent with full fees and secure distribution", async () => {
       // Get actual treasury addresses from protocol config
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
-      const protocolBalanceBefore = await provider.connection.getBalance(config.protocolTreasury);
-      const validatorBalanceBefore = await provider.connection.getBalance(config.validatorTreasury);
-      const networkBalanceBefore = await provider.connection.getBalance(config.networkTreasury);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
+      const protocolBalanceBefore = await provider.connection.getBalance(
+        config.protocolTreasury
+      );
+      const validatorBalanceBefore = await provider.connection.getBalance(
+        config.validatorTreasury
+      );
+      const networkBalanceBefore = await provider.connection.getBalance(
+        config.networkTreasury
+      );
+
       const standardMetadata = getMetadataPDA(standardMint);
-      
+
       await program.methods
         .createAgent(
-          standardMint, 
+          standardMint,
           "https://arweave.net/standard-agent-config",
-          null  // collection_mint (no collection)
+          null // collection_mint (no collection)
         )
         .accounts({
           agentAccount: standardAgentPda,
@@ -655,23 +735,39 @@ describe("Mainframe Security & Performance Tests", () => {
         .rpc();
 
       // Verify fee distribution (with enhanced security)
-      const protocolBalanceAfter = await provider.connection.getBalance(protocolTreasury.publicKey);
-      const validatorBalanceAfter = await provider.connection.getBalance(validatorTreasury.publicKey);
-      const networkBalanceAfter = await provider.connection.getBalance(networkTreasury.publicKey);
+      const protocolBalanceAfter = await provider.connection.getBalance(
+        protocolTreasury.publicKey
+      );
+      const validatorBalanceAfter = await provider.connection.getBalance(
+        validatorTreasury.publicKey
+      );
+      const networkBalanceAfter = await provider.connection.getBalance(
+        networkTreasury.publicKey
+      );
 
-      const expectedProtocolShare = Math.floor(fees.createAgent.toNumber() * 0.6);
-      const expectedValidatorShare = Math.floor(fees.createAgent.toNumber() * 0.3);
-      const expectedNetworkShare = Math.floor(fees.createAgent.toNumber() * 0.1);
+      const expectedProtocolShare = Math.floor(
+        fees.createAgent.toNumber() * 0.6
+      );
+      const expectedValidatorShare = Math.floor(
+        fees.createAgent.toNumber() * 0.3
+      );
+      const expectedNetworkShare = Math.floor(
+        fees.createAgent.toNumber() * 0.1
+      );
 
       // For testing, fee distribution is logged but not actually transferred
       // This tests the fee calculation logic without actual SOL transfers
-      console.log("Standard agent created - fee calculation tested via program logs");
+      console.log(
+        "Standard agent created - fee calculation tested via program logs"
+      );
     });
 
     it("Prevents agent creation with empty metadata URI", async () => {
       // Get actual treasury addresses from protocol config
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
       // Create a new NFT with metadata for this test
       const invalidNFT = await createNFTWithMetadata({
         provider,
@@ -720,9 +816,9 @@ describe("Mainframe Security & Performance Tests", () => {
       try {
         await program.methods
           .createAgent(
-            invalidMint, 
+            invalidMint,
             "",
-            null  // collection_mint
+            null // collection_mint
           )
           .accounts({
             agentAccount: invalidAgentPda,
@@ -742,7 +838,7 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([user1])
           .rpc();
-        
+
         expect.fail("Should have failed with invalid metadata URI");
       } catch (error) {
         expect(error.toString()).to.include("Invalid or empty metadata URI");
@@ -754,10 +850,12 @@ describe("Mainframe Security & Performance Tests", () => {
     it("Updates agent configuration with fee validation", async () => {
       // Uses genesis agent created in previous test
       // Get actual treasury addresses from protocol config
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
 
       const newMetadataUri = "https://arweave.net/updated-genesis-config";
-      
+
       await program.methods
         .updateAgentConfig(newMetadataUri)
         .accounts({
@@ -828,8 +926,12 @@ describe("Mainframe Security & Performance Tests", () => {
 
     it("Closes agent account for rent recovery", async () => {
       // Uses standard agent created in previous test
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      const rentReceiverBalanceBefore = await provider.connection.getBalance(config.protocolTreasury);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+      const rentReceiverBalanceBefore = await provider.connection.getBalance(
+        config.protocolTreasury
+      );
 
       await program.methods
         .closeAgentAccount()
@@ -850,9 +952,17 @@ describe("Mainframe Security & Performance Tests", () => {
         expect(error.toString()).to.include("Account does not exist");
       }
 
-      const rentReceiverBalanceAfter = await provider.connection.getBalance(config.protocolTreasury);
-      expect(rentReceiverBalanceAfter).to.be.greaterThan(rentReceiverBalanceBefore);
-      console.log(`Rent recovered: ${rentReceiverBalanceAfter - rentReceiverBalanceBefore} lamports`);
+      const rentReceiverBalanceAfter = await provider.connection.getBalance(
+        config.protocolTreasury
+      );
+      expect(rentReceiverBalanceAfter).to.be.greaterThan(
+        rentReceiverBalanceBefore
+      );
+      console.log(
+        `Rent recovered: ${
+          rentReceiverBalanceAfter - rentReceiverBalanceBefore
+        } lamports`
+      );
     });
 
     it("Prevents operations on closed agents (security test)", async () => {
@@ -887,13 +997,17 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([protocolAuthority])
         .rpc();
 
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       expect(config.paused).to.be.true;
     });
 
     it("Prevents operations when protocol is paused", async () => {
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
       // Create a test NFT with metadata
       const testNFT = await createNFTWithMetadata({
         provider,
@@ -915,9 +1029,9 @@ describe("Mainframe Security & Performance Tests", () => {
       try {
         await program.methods
           .createAgent(
-            testMint, 
+            testMint,
             "https://arweave.net/paused-test",
-            null  // collection_mint
+            null // collection_mint
           )
           .accounts({
             agentAccount: pausedAgentPda,
@@ -937,7 +1051,7 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([user1])
           .rpc();
-        
+
         expect.fail("Should have failed when protocol is paused");
       } catch (error) {
         expect(error.toString()).to.include("Protocol is paused");
@@ -956,9 +1070,9 @@ describe("Mainframe Security & Performance Tests", () => {
         .rpc();
 
       const newFees = {
-        createAgent: new anchor.BN(0.10 * LAMPORTS_PER_SOL),     // Doubled
-        updateAgentConfig: new anchor.BN(0.01 * LAMPORTS_PER_SOL),    // Doubled
-        transferAgent: new anchor.BN(0.02 * LAMPORTS_PER_SOL),   // Doubled
+        createAgent: new anchor.BN(0.1 * LAMPORTS_PER_SOL), // Doubled
+        updateAgentConfig: new anchor.BN(0.01 * LAMPORTS_PER_SOL), // Doubled
+        transferAgent: new anchor.BN(0.02 * LAMPORTS_PER_SOL), // Doubled
         pauseAgent: new anchor.BN(0),
         closeAgent: new anchor.BN(0),
         executeAction: new anchor.BN(0),
@@ -973,17 +1087,23 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([protocolAuthority])
         .rpc();
 
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      expect(config.fees.createAgent.toNumber()).to.equal(newFees.createAgent.toNumber());
-      expect(config.fees.updateAgentConfig.toNumber()).to.equal(newFees.updateAgentConfig.toNumber());
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+      expect(config.fees.createAgent.toNumber()).to.equal(
+        newFees.createAgent.toNumber()
+      );
+      expect(config.fees.updateAgentConfig.toNumber()).to.equal(
+        newFees.updateAgentConfig.toNumber()
+      );
     });
 
     it("Updates treasury distribution with basis points validation", async () => {
       await program.methods
         .updateTreasuryDistribution(
           5000, // 50% protocol
-          3000, // 30% validator  
-          2000  // 20% network
+          3000, // 30% validator
+          2000 // 20% network
         )
         .accounts({
           protocolConfig: protocolConfigPda,
@@ -992,7 +1112,9 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([protocolAuthority])
         .rpc();
 
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       expect(config.protocolTreasuryBps).to.equal(5000);
       expect(config.validatorTreasuryBps).to.equal(3000);
       expect(config.networkTreasuryBps).to.equal(2000);
@@ -1002,7 +1124,7 @@ describe("Mainframe Security & Performance Tests", () => {
       await program.methods
         .updateProtocolLimits(
           new anchor.BN(200), // Increase max partner collections to 200
-          7500  // Increase max affiliate bps to 75%
+          7500 // Increase max affiliate bps to 75%
         )
         .accounts({
           protocolConfig: protocolConfigPda,
@@ -1011,15 +1133,20 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([protocolAuthority])
         .rpc();
 
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       expect(config.maxPartnerCollections.toNumber()).to.equal(200);
       expect(config.maxAffiliateBps).to.equal(7500);
     });
 
     it("Prevents unauthorized admin operations (security test)", async () => {
       const wrongAuthority = Keypair.generate();
-      await provider.connection.requestAirdrop(wrongAuthority.publicKey, LAMPORTS_PER_SOL);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await provider.connection.requestAirdrop(
+        wrongAuthority.publicKey,
+        LAMPORTS_PER_SOL
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       try {
         await program.methods
@@ -1030,7 +1157,7 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([wrongAuthority])
           .rpc();
-        
+
         expect.fail("Should have failed with wrong authority");
       } catch (error) {
         expect(error.toString()).to.include("Unauthorized");
@@ -1039,8 +1166,11 @@ describe("Mainframe Security & Performance Tests", () => {
 
     it("Transfers protocol authority securely", async () => {
       const newAuthority = Keypair.generate();
-      await provider.connection.requestAirdrop(newAuthority.publicKey, LAMPORTS_PER_SOL);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await provider.connection.requestAirdrop(
+        newAuthority.publicKey,
+        LAMPORTS_PER_SOL
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Step 1: Propose transfer
       await program.methods
@@ -1062,8 +1192,12 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([newAuthority])
         .rpc();
 
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      expect(config.authority.toString()).to.equal(newAuthority.publicKey.toString());
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+      expect(config.authority.toString()).to.equal(
+        newAuthority.publicKey.toString()
+      );
 
       // Revert authority for other tests
       await program.methods
@@ -1088,11 +1222,16 @@ describe("Mainframe Security & Performance Tests", () => {
 
   describe("Affiliate Program", () => {
     it("Creates agent with affiliate fee (15% Bronze tier)", async () => {
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
       const seller = Keypair.generate();
-      await provider.connection.requestAirdrop(seller.publicKey, 1 * LAMPORTS_PER_SOL);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await provider.connection.requestAirdrop(
+        seller.publicKey,
+        1 * LAMPORTS_PER_SOL
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Create NFT with metadata
       const affiliateTestNFT = await createNFTWithMetadata({
@@ -1112,14 +1251,12 @@ describe("Mainframe Security & Performance Tests", () => {
         program.programId
       );
 
-      const sellerBalanceBefore = await provider.connection.getBalance(seller.publicKey);
+      const sellerBalanceBefore = await provider.connection.getBalance(
+        seller.publicKey
+      );
 
       await program.methods
-        .createAgent(
-          testMint,
-          "https://arweave.net/affiliate-test",
-          null
-        )
+        .createAgent(testMint, "https://arweave.net/affiliate-test", null)
         .accounts({
           agentAccount: agentPda,
           owner: user1.publicKey,
@@ -1139,21 +1276,31 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([user1])
         .rpc();
 
-      const sellerBalanceAfter = await provider.connection.getBalance(seller.publicKey);
+      const sellerBalanceAfter = await provider.connection.getBalance(
+        seller.publicKey
+      );
       const affiliateReceived = sellerBalanceAfter - sellerBalanceBefore;
-      
+
       // Fees have been doubled by previous test (0.05 → 0.10 SOL)
       // Bronze tier = 15%
-      const currentFeeConfig = await program.account.protocolConfig.fetch(protocolConfigPda);
-      const expectedAffiliate = Math.floor(currentFeeConfig.fees.createAgent.toNumber() * 0.15);
+      const currentFeeConfig = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+      const expectedAffiliate = Math.floor(
+        currentFeeConfig.fees.createAgent.toNumber() * 0.15
+      );
       expect(affiliateReceived).to.equal(expectedAffiliate);
 
-      console.log(`Affiliate received: ${affiliateReceived} lamports (15% Bronze tier of ${currentFeeConfig.fees.createAgent.toNumber()})`);
+      console.log(
+        `Affiliate received: ${affiliateReceived} lamports (15% Bronze tier of ${currentFeeConfig.fees.createAgent.toNumber()})`
+      );
     });
 
     it("Creates agent without affiliate (backward compatible)", async () => {
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
       // Create NFT with metadata
       const noAffiliateNFT = await createNFTWithMetadata({
         provider,
@@ -1173,11 +1320,7 @@ describe("Mainframe Security & Performance Tests", () => {
       );
 
       await program.methods
-        .createAgent(
-          testMint,
-          "https://arweave.net/no-affiliate",
-          null
-        )
+        .createAgent(testMint, "https://arweave.net/no-affiliate", null)
         .accounts({
           agentAccount: agentPda,
           owner: user1.publicKey,
@@ -1202,8 +1345,10 @@ describe("Mainframe Security & Performance Tests", () => {
 
     it("Fails with affiliate > 50%", async () => {
       // Skipped: Requires Metaplex Token Metadata program on localnet
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
       const seller = Keypair.generate();
       const testMint = await createMint(
         provider.connection,
@@ -1239,20 +1384,20 @@ describe("Mainframe Security & Performance Tests", () => {
         fromPubkey: user1.publicKey,
         newAccountPubkey: metadataKeypair.publicKey,
         space: 300,
-        lamports: await provider.connection.getMinimumBalanceForRentExemption(300),
+        lamports: await provider.connection.getMinimumBalanceForRentExemption(
+          300
+        ),
         programId: new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"),
       });
 
-      const createMetadataTx = new anchor.web3.Transaction().add(createMetadataIx);
+      const createMetadataTx = new anchor.web3.Transaction().add(
+        createMetadataIx
+      );
       await provider.sendAndConfirm(createMetadataTx, [user1, metadataKeypair]);
 
       try {
         await program.methods
-          .createAgent(
-            testMint,
-            "https://arweave.net/invalid-affiliate",
-            null
-          )
+          .createAgent(testMint, "https://arweave.net/invalid-affiliate", null)
           .accounts({
             agentAccount: agentPda,
             owner: user1.publicKey,
@@ -1287,8 +1432,11 @@ describe("Mainframe Security & Performance Tests", () => {
 
     before("Setup transfer test NFT and agent", async () => {
       newOwner = Keypair.generate();
-      await provider.connection.requestAirdrop(newOwner.publicKey, 5 * LAMPORTS_PER_SOL);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await provider.connection.requestAirdrop(
+        newOwner.publicKey,
+        5 * LAMPORTS_PER_SOL
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const { mint, tokenAccount } = await createNFTWithMetadata({
         provider,
@@ -1299,7 +1447,7 @@ describe("Mainframe Security & Performance Tests", () => {
         uri: "https://test.maikers.com/transfer-nft.json",
         collectionMint: genesisCollectionMint,
       });
-      
+
       transferTestNftMint = mint;
       transferTestTokenAccount = tokenAccount;
 
@@ -1308,7 +1456,9 @@ describe("Mainframe Security & Performance Tests", () => {
         program.programId
       );
 
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       const transferTestMetadata = getMetadataPDA(transferTestNftMint);
 
       await program.methods
@@ -1335,7 +1485,7 @@ describe("Mainframe Security & Performance Tests", () => {
         })
         .signers([user1])
         .rpc();
-      
+
       console.log("Transfer test agent created");
     });
 
@@ -1356,10 +1506,16 @@ describe("Mainframe Security & Performance Tests", () => {
         1
       );
 
-      const agentBeforeTransfer = await program.account.agentAccount.fetch(transferTestAgentPda);
-      expect(agentBeforeTransfer.owner.toString()).to.equal(user1.publicKey.toString());
+      const agentBeforeTransfer = await program.account.agentAccount.fetch(
+        transferTestAgentPda
+      );
+      expect(agentBeforeTransfer.owner.toString()).to.equal(
+        user1.publicKey.toString()
+      );
 
-      const newOwnerBalanceBefore = await provider.connection.getBalance(newOwner.publicKey);
+      const newOwnerBalanceBefore = await provider.connection.getBalance(
+        newOwner.publicKey
+      );
 
       await program.methods
         .transferAgent()
@@ -1375,20 +1531,33 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([newOwner])
         .rpc();
 
-      const agentAfterTransfer = await program.account.agentAccount.fetch(transferTestAgentPda);
-      expect(agentAfterTransfer.owner.toString()).to.equal(newOwner.publicKey.toString());
+      const agentAfterTransfer = await program.account.agentAccount.fetch(
+        transferTestAgentPda
+      );
+      expect(agentAfterTransfer.owner.toString()).to.equal(
+        newOwner.publicKey.toString()
+      );
 
-      const newOwnerBalanceAfter = await provider.connection.getBalance(newOwner.publicKey);
+      const newOwnerBalanceAfter = await provider.connection.getBalance(
+        newOwner.publicKey
+      );
       const feePaid = newOwnerBalanceBefore - newOwnerBalanceAfter;
-      
+
       expect(feePaid).to.be.greaterThan(0);
-      console.log(`✅ Agent transferred successfully. Fee paid by new owner: ${feePaid / LAMPORTS_PER_SOL} SOL`);
+      console.log(
+        `✅ Agent transferred successfully. Fee paid by new owner: ${
+          feePaid / LAMPORTS_PER_SOL
+        } SOL`
+      );
     });
 
     it("Fails to transfer when new owner doesn't own NFT", async () => {
       const unauthorizedUser = Keypair.generate();
-      await provider.connection.requestAirdrop(unauthorizedUser.publicKey, 2 * LAMPORTS_PER_SOL);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await provider.connection.requestAirdrop(
+        unauthorizedUser.publicKey,
+        2 * LAMPORTS_PER_SOL
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const fakeTokenAccount = await createAccount(
         provider.connection,
@@ -1411,19 +1580,21 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([unauthorizedUser])
           .rpc();
-        
+
         expect.fail("Should have failed - new owner doesn't own NFT");
       } catch (error) {
         expect(error.toString()).to.include("NFTNotOwned");
-        console.log("✅ Correctly prevented transfer when new owner doesn't own NFT");
+        console.log(
+          "✅ Correctly prevented transfer when new owner doesn't own NFT"
+        );
       }
     });
 
     it("Fails to transfer agent to current owner (already owns it)", async () => {
-      const newOwnerTokenAccount = await provider.connection.getTokenAccountsByOwner(
-        newOwner.publicKey,
-        { mint: transferTestNftMint }
-      );
+      const newOwnerTokenAccount =
+        await provider.connection.getTokenAccountsByOwner(newOwner.publicKey, {
+          mint: transferTestNftMint,
+        });
 
       try {
         await program.methods
@@ -1439,31 +1610,36 @@ describe("Mainframe Security & Performance Tests", () => {
           })
           .signers([newOwner])
           .rpc();
-        
+
         expect.fail("Should have failed - new owner already owns the agent");
       } catch (error) {
         expect(error.toString()).to.include("AlreadyOwner");
-        console.log("✅ Correctly prevented redundant transfer to current owner");
+        console.log(
+          "✅ Correctly prevented redundant transfer to current owner"
+        );
       }
     });
 
     it("Verifies transfer fee payment (genesis collection = free)", async () => {
-      const { mint: genesisMint2, tokenAccount: genesisTA2 } = await createNFTWithMetadata({
-        provider,
-        payer: user1,
-        owner: user1.publicKey,
-        name: "Genesis Transfer Test 2",
-        symbol: "GTST2",
-        uri: "https://test.maikers.com/genesis-transfer2.json",
-        collectionMint: genesisCollectionMint,
-      });
+      const { mint: genesisMint2, tokenAccount: genesisTA2 } =
+        await createNFTWithMetadata({
+          provider,
+          payer: user1,
+          owner: user1.publicKey,
+          name: "Genesis Transfer Test 2",
+          symbol: "GTST2",
+          uri: "https://test.maikers.com/genesis-transfer2.json",
+          collectionMint: genesisCollectionMint,
+        });
 
       const [genesisAgentPda2] = PublicKey.findProgramAddressSync(
         [Buffer.from("agent"), genesisMint2.toBuffer()],
         program.programId
       );
 
-      const config2 = await program.account.protocolConfig.fetch(protocolConfigPda);
+      const config2 = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
       const genesisMetadata2 = getMetadataPDA(genesisMint2);
 
       await program.methods
@@ -1492,8 +1668,11 @@ describe("Mainframe Security & Performance Tests", () => {
         .rpc();
 
       const newOwner2 = Keypair.generate();
-      await provider.connection.requestAirdrop(newOwner2.publicKey, 2 * LAMPORTS_PER_SOL);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await provider.connection.requestAirdrop(
+        newOwner2.publicKey,
+        2 * LAMPORTS_PER_SOL
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const newOwner2TokenAccount = await createAccount(
         provider.connection,
@@ -1525,36 +1704,62 @@ describe("Mainframe Security & Performance Tests", () => {
         .signers([newOwner2])
         .rpc();
 
-      console.log("✅ Genesis collection agent transferred (zero fee as expected)");
+      console.log(
+        "✅ Genesis collection agent transferred (zero fee as expected)"
+      );
     });
   });
 
   describe("Security Validation Summary", () => {
     it("Validates all security features are operational", async () => {
       // Uses agents created in previous tests
-      const config = await program.account.protocolConfig.fetch(protocolConfigPda);
-      
+      const config = await program.account.protocolConfig.fetch(
+        protocolConfigPda
+      );
+
       console.log("\n🔐 SECURITY AUDIT SUMMARY:");
-      console.log("✅ PDA Authority: Protocol-controlled account creation for rent recovery");
-      console.log("✅ Fee Distribution: Secure basis points validation and atomic operations");
-      console.log("✅ Access Controls: Proper ownership and authority validation");
-      console.log("✅ Stack Safety: Optimized account structures for Solana runtime");
+      console.log(
+        "✅ PDA Authority: Protocol-controlled account creation for rent recovery"
+      );
+      console.log(
+        "✅ Fee Distribution: Secure basis points validation and atomic operations"
+      );
+      console.log(
+        "✅ Access Controls: Proper ownership and authority validation"
+      );
+      console.log(
+        "✅ Stack Safety: Optimized account structures for Solana runtime"
+      );
       console.log("✅ Emergency Controls: Protocol pause mechanism functional");
-      console.log("✅ Rent Recovery: Account closure and SOL recovery implemented");
-      console.log("✅ Input Validation: URI format, fee amounts, and constraint checks");
-      console.log("✅ Genesis Benefits: Zero fees for maikers'collectibles enforced");
+      console.log(
+        "✅ Rent Recovery: Account closure and SOL recovery implemented"
+      );
+      console.log(
+        "✅ Input Validation: URI format, fee amounts, and constraint checks"
+      );
+      console.log(
+        "✅ Genesis Benefits: Zero fees for maikers'collectibles enforced"
+      );
       console.log("✅ Partner Management: Dynamic partner collection handling");
       console.log("✅ Event Logging: Complete audit trail for all operations");
-      
+
       console.log(`\n📊 FINAL PROTOCOL STATE:`);
       console.log(`- Total Agents: ${config.totalAgents.toNumber()}`);
       console.log(`- Partner Collections: ${config.totalPartners.toNumber()}`);
       console.log(`- Protocol Paused: ${config.paused}`);
       console.log(`- Authority: ${config.authority.toString()}`);
-      console.log(`- Treasury Distribution: ${config.protocolTreasuryBps/100}% / ${config.validatorTreasuryBps/100}% / ${config.networkTreasuryBps/100}%`);
+      console.log(
+        `- Treasury Distribution: ${config.protocolTreasuryBps / 100}% / ${
+          config.validatorTreasuryBps / 100
+        }% / ${config.networkTreasuryBps / 100}%`
+      );
 
       // Verify all security constraints are met
-      expect(config.protocolTreasuryBps + config.validatorTreasuryBps + config.networkTreasuryBps).to.equal(10000);
+      expect(
+        config.protocolTreasuryBps +
+          config.validatorTreasuryBps +
+          config.networkTreasuryBps
+      ).to.equal(10000);
       expect(config.totalAgents.toNumber()).to.be.greaterThan(0);
     });
   });

@@ -1,7 +1,7 @@
 /**
  * Solana Kit (v2) helpers for test utilities
- * 
- * These helpers bridge between Anchor (which uses web3.js v1) and 
+ *
+ * These helpers bridge between Anchor (which uses web3.js v1) and
  * modern Solana Kit v2 APIs for better type safety and performance.
  */
 
@@ -95,4 +95,3 @@ export function createAddressSafe(addressStr: string): Address {
 export function createAddressesSafe(addressStrs: string[]): Address[] {
   return addressStrs.map(createAddressSafe);
 }
-

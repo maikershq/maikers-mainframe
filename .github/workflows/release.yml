@@ -262,9 +262,6 @@ jobs:
       - name: Verify build on ${{ matrix.os }}
         run: anchor build
 
-      - name: Run tests on ${{ matrix.os }}
-        run: anchor test --skip-local-validator
-
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest

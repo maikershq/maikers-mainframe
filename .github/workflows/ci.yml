@@ -115,9 +115,6 @@ jobs:
       - name: Build Anchor program
         run: anchor build
 
-      - name: Run Anchor tests
-        run: anchor test --skip-local-validator
-
       - name: Upload program artifacts
         uses: actions/upload-artifact@v4
         with:

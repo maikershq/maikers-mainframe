@@ -1,6 +1,13 @@
 import * as anchor from "@coral-xyz/anchor";
 import { address, Address } from "@solana/addresses";
-import { PublicKey, Keypair, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction } from "@solana/web3.js";
+import {
+  PublicKey,
+  Keypair,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
 import {
   createMint,
   createAccount,
@@ -10,7 +17,9 @@ import {
 import { TOKEN_PROGRAM_ADDRESS } from "@solana-program/token";
 import { publicKeyToAddress, addressToPublicKey } from "./solana-kit-helpers";
 
-const MPL_TOKEN_METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+const MPL_TOKEN_METADATA_PROGRAM_ID = new PublicKey(
+  "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+);
 
 export interface CreateNFTParams {
   provider: anchor.AnchorProvider;
@@ -34,7 +43,11 @@ export interface NFTData {
 
 export function getMetadataPDA(mint: PublicKey): PublicKey {
   const [metadata] = PublicKey.findProgramAddressSync(
-    [Buffer.from("metadata"), MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    [
+      Buffer.from("metadata"),
+      MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      mint.toBuffer(),
+    ],
     MPL_TOKEN_METADATA_PROGRAM_ID
   );
   return metadata;
@@ -53,14 +66,16 @@ export function getMasterEditionPDA(mint: PublicKey): PublicKey {
   return masterEdition;
 }
 
-export async function createNFTWithMetadata(params: CreateNFTParams): Promise<NFTData> {
+export async function createNFTWithMetadata(
+  params: CreateNFTParams
+): Promise<NFTData> {
   const { provider, payer, owner, name, symbol, uri } = params;
 
   // Wait for payer to have funds
   let balance = await provider.connection.getBalance(payer.publicKey);
   let retries = 0;
   while (balance === 0 && retries < 10) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     balance = await provider.connection.getBalance(payer.publicKey);
     retries++;
   }
@@ -85,14 +100,7 @@ export async function createNFTWithMetadata(params: CreateNFTParams): Promise<NF
   );
 
   // Mint one token
-  await mintTo(
-    provider.connection,
-    payer,
-    mintPubkey,
-    tokenAccount,
-    payer,
-    1
-  );
+  await mintTo(provider.connection, payer, mintPubkey, tokenAccount, payer, 1);
 
   // Get metadata PDA
   const metadata = getMetadataPDA(mintPubkey);
@@ -102,11 +110,11 @@ export async function createNFTWithMetadata(params: CreateNFTParams): Promise<NF
   // Build metadata instruction data manually
   const metadataData = Buffer.alloc(679);
   let offset = 0;
-  
+
   // Discriminator for CreateMetadataAccountV3 = 33
   metadataData.writeUInt8(33, offset);
   offset += 1;
-  
+
   // DataV2 struct
   // name (String)
   const nameBytes = Buffer.from(name);
@@ -114,29 +122,29 @@ export async function createNFTWithMetadata(params: CreateNFTParams): Promise<NF
   offset += 4;
   nameBytes.copy(metadataData, offset);
   offset += nameBytes.length;
-  
+
   // symbol (String)
   const symbolBytes = Buffer.from(symbol);
   metadataData.writeUInt32LE(symbolBytes.length, offset);
   offset += 4;
   symbolBytes.copy(metadataData, offset);
   offset += symbolBytes.length;
-  
+
   // uri (String)
   const uriBytes = Buffer.from(uri);
   metadataData.writeUInt32LE(uriBytes.length, offset);
   offset += 4;
   uriBytes.copy(metadataData, offset);
   offset += uriBytes.length;
-  
+
   // sellerFeeBasisPoints (u16)
   metadataData.writeUInt16LE(0, offset);
   offset += 2;
-  
+
   // creators (Option<Vec<Creator>>)
   metadataData.writeUInt8(0, offset); // None
   offset += 1;
-  
+
   // collection (Option<Collection>)
   if (params.collectionMint) {
     metadataData.writeUInt8(1, offset); // Some
@@ -149,15 +157,15 @@ export async function createNFTWithMetadata(params: CreateNFTParams): Promise<NF
     metadataData.writeUInt8(0, offset); // None
     offset += 1;
   }
-  
+
   // uses (Option<Uses>)
   metadataData.writeUInt8(0, offset); // None
   offset += 1;
-  
+
   // isMutable (bool)
   metadataData.writeUInt8(1, offset);
   offset += 1;
-  
+
   // collectionDetails (Option<CollectionDetails>)
   metadataData.writeUInt8(0, offset); // None
   offset += 1;
@@ -180,7 +188,12 @@ export async function createNFTWithMetadata(params: CreateNFTParams): Promise<NF
   await provider.sendAndConfirm(createMetadataTx, [payer]);
 
   // If collection info is provided, verify the collection
-  if (params.collectionMint && params.collectionMetadata && params.collectionMasterEdition && params.collectionAuthority) {
+  if (
+    params.collectionMint &&
+    params.collectionMetadata &&
+    params.collectionMasterEdition &&
+    params.collectionAuthority
+  ) {
     const verifyIx = createVerifyCollectionInstruction({
       metadata,
       collectionAuthority: params.collectionAuthority.publicKey,
@@ -231,7 +244,7 @@ function createMetadataAccountV3Instruction(params: {
 
   const dataLayout = Buffer.alloc(500);
   let offset = 0;
-  
+
   dataLayout.writeUInt8(33, offset);
   offset += 1;
 
@@ -294,7 +307,7 @@ function createMasterEditionV3Instruction(params: {
   maxSupply: number;
 }): anchor.web3.TransactionInstruction {
   const TOKEN_PROGRAM_ID = new PublicKey(TOKEN_PROGRAM_ADDRESS);
-  
+
   const keys = [
     { pubkey: params.edition, isSigner: false, isWritable: true },
     { pubkey: params.mint, isSigner: false, isWritable: true },
@@ -336,7 +349,11 @@ function createVerifyCollectionInstruction(params: {
     { pubkey: params.collectionAuthority, isSigner: true, isWritable: false },
     { pubkey: params.collectionMint, isSigner: false, isWritable: false },
     { pubkey: params.collection, isSigner: false, isWritable: false },
-    { pubkey: params.collectionMasterEditionAccount, isSigner: false, isWritable: false },
+    {
+      pubkey: params.collectionMasterEditionAccount,
+      isSigner: false,
+      isWritable: false,
+    },
   ];
 
   const data = Buffer.from([18]);
@@ -348,13 +365,15 @@ function createVerifyCollectionInstruction(params: {
   });
 }
 
-export async function createCollectionNFT(params: CreateNFTParams): Promise<NFTData> {
+export async function createCollectionNFT(
+  params: CreateNFTParams
+): Promise<NFTData> {
   const { provider, payer, owner, name, symbol, uri } = params;
 
   let balance = await provider.connection.getBalance(payer.publicKey);
   let retries = 0;
   while (balance === 0 && retries < 10) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     balance = await provider.connection.getBalance(payer.publicKey);
     retries++;
   }
@@ -376,57 +395,50 @@ export async function createCollectionNFT(params: CreateNFTParams): Promise<NFTD
     owner
   );
 
-  await mintTo(
-    provider.connection,
-    payer,
-    mintPubkey,
-    tokenAccount,
-    payer,
-    1
-  );
+  await mintTo(provider.connection, payer, mintPubkey, tokenAccount, payer, 1);
 
   const metadata = getMetadataPDA(mintPubkey);
   const masterEdition = getMasterEditionPDA(mintPubkey);
 
   const metadataData = Buffer.alloc(679);
   let offset = 0;
-  
+
   metadataData.writeUInt8(33, offset);
   offset += 1;
-  
+
   const nameBytes = Buffer.from(name);
   metadataData.writeUInt32LE(nameBytes.length, offset);
   offset += 4;
   nameBytes.copy(metadataData, offset);
   offset += nameBytes.length;
-  
+
   const symbolBytes = Buffer.from(symbol);
   metadataData.writeUInt32LE(symbolBytes.length, offset);
   offset += 4;
   symbolBytes.copy(metadataData, offset);
   offset += symbolBytes.length;
-  
+
   const uriBytes = Buffer.from(uri);
   metadataData.writeUInt32LE(uriBytes.length, offset);
   offset += 4;
   uriBytes.copy(metadataData, offset);
   offset += uriBytes.length;
-  
+
   metadataData.writeUInt16LE(0, offset);
   offset += 2;
-  
+
   metadataData.writeUInt8(0, offset);
   offset += 1;
-  
+
   metadataData.writeUInt8(0, offset);
   offset += 1;
-  
+
   metadataData.writeUInt8(0, offset);
   offset += 1;
-  
+
   metadataData.writeUInt8(1, offset);
   offset += 1;
-  
+
   metadataData.writeUInt8(0, offset);
   offset += 1;
 
@@ -467,4 +479,3 @@ export async function createCollectionNFT(params: CreateNFTParams): Promise<NFTD
     masterEdition,
   };
 }
-

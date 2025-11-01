@@ -13,12 +13,12 @@ export function ensureKeysDir() {
 export function loadOrCreateKeypair(name: string): Keypair {
   ensureKeysDir();
   const keyPath = path.join(KEYS_DIR, `${name}.json`);
-  
+
   if (fs.existsSync(keyPath)) {
     const secretKey = JSON.parse(fs.readFileSync(keyPath, "utf-8"));
     return Keypair.fromSecretKey(Uint8Array.from(secretKey));
   }
-  
+
   const keypair = Keypair.generate();
   fs.writeFileSync(keyPath, JSON.stringify(Array.from(keypair.secretKey)));
   console.log(`Created new keypair: ${name} (${keypair.publicKey.toString()})`);
@@ -34,4 +34,3 @@ export function cleanupTestKeys() {
     fs.rmSync(KEYS_DIR, { recursive: true });
   }
 }
-

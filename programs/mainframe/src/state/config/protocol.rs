@@ -3,6 +3,12 @@ use crate::errors::MainframeError;
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 
+pub struct TreasuryAccounts<'info> {
+    pub protocol_treasury: &'info AccountInfo<'info>,
+    pub validator_treasury: &'info AccountInfo<'info>,
+    pub network_treasury: &'info AccountInfo<'info>,
+}
+
 #[account]
 pub struct ProtocolConfig {
     /// Protocol authority
@@ -175,9 +181,7 @@ impl ProtocolConfig {
         seller_affiliate_bps: u16,
         payer: &AccountInfo<'info>,
         seller: Option<&AccountInfo<'info>>,
-        protocol_treasury: &AccountInfo<'info>,
-        validator_treasury: &AccountInfo<'info>,
-        network_treasury: &AccountInfo<'info>,
+        treasury_accounts: TreasuryAccounts<'info>,
         system_program: &AccountInfo<'info>,
     ) -> Result<u64> {
         if total_fee == 0 {
@@ -245,7 +249,7 @@ impl ProtocolConfig {
                     system_program.to_account_info(),
                     Transfer {
                         from: payer.to_account_info(),
-                        to: protocol_treasury.to_account_info(),
+                        to: treasury_accounts.protocol_treasury.to_account_info(),
                     },
                 ),
                 protocol_fee_final,
@@ -258,7 +262,7 @@ impl ProtocolConfig {
                     system_program.to_account_info(),
                     Transfer {
                         from: payer.to_account_info(),
-                        to: validator_treasury.to_account_info(),
+                        to: treasury_accounts.validator_treasury.to_account_info(),
                     },
                 ),
                 validator_fee,
@@ -271,7 +275,7 @@ impl ProtocolConfig {
                     system_program.to_account_info(),
                     Transfer {
                         from: payer.to_account_info(),
-                        to: network_treasury.to_account_info(),
+                        to: treasury_accounts.network_treasury.to_account_info(),
                     },
                 ),
                 network_fee,
