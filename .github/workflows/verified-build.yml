@@ -39,7 +39,7 @@ jobs:
           cargo install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked
           
       - name: Cache Rust dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -102,7 +102,7 @@ jobs:
             });
             
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: verified-build-${{ github.sha }}
           path: |
@@ -121,14 +121,11 @@ jobs:
           
       - name: Upload to release
         if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: maikers-mainframe/mainframe-verified-build-${{ github.sha }}.tar.gz
-          asset_name: mainframe-verified-build.tar.gz
-          asset_content_type: application/gzip
+          files: maikers-mainframe/mainframe-verified-build-${{ github.sha }}.tar.gz
 
   security-audit:
     name: Security Audit
