@@ -31,18 +31,18 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
     --profile minimal \
     --component rustfmt,clippy
 
-ENV PATH="/root/.cargo/bin:${PATH}"
-
 # Install Solana CLI
-RUN sh -c "$(curl -sSfL https://release.solana.com/v${SOLANA_VERSION}/install)"
-ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
+RUN sh -c "$(curl -sSfL https://release.solana.com/v${SOLANA_VERSION}/install)" && \
+    /root/.local/share/solana/install/active_release/bin/solana --version
 
 # Install Anchor CLI via AVM
-RUN cargo install --git https://github.com/coral-xyz/anchor avm --locked --force && \
+RUN export PATH="/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:${PATH}" && \
+    cargo install --git https://github.com/coral-xyz/anchor avm --locked --force && \
     avm install ${ANCHOR_VERSION} && \
     avm use ${ANCHOR_VERSION}
 
-ENV PATH="/root/.avm/bin:${PATH}"
+# Set all PATHs at once
+ENV PATH="/root/.avm/bin:/root/.local/share/solana/install/active_release/bin:/root/.cargo/bin:${PATH}"
 
 # Install Node.js and Yarn
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
@@ -55,6 +55,7 @@ RUN cargo install cargo-audit --version 0.21.1 --locked
 
 # Verify installations
 RUN echo "=== Verifying installations ===" && \
+    echo "PATH: ${PATH}" && \
     rustc --version && \
     cargo --version && \
     rustfmt --version && \
