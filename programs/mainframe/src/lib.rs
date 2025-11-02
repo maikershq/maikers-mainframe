@@ -15,7 +15,7 @@ security_txt! {
     policy: "https://github.com/maikershq/maikers-mainframe/blob/main/SECURITY.md",
     preferred_languages: "en",
     source_code: "https://github.com/maikershq/maikers-mainframe",
-    source_revision: "65494192737217aa5228a9ff52d5002081b02447",
+    source_revision: "f01980cd083ccbc9444d38cdff25cb2dff5ba02d",
     auditors: "To be announced",
     acknowledgements: "Thank you to our security researchers and the Solana community!"
 }
