@@ -10,3 +10,4 @@ test-ledger
 keys/
 .env*
 test-programs/*.so
+production/
