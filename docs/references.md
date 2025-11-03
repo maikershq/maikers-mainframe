@@ -24,20 +24,46 @@ pub fn create_agent(
     ctx: Context<CreateAgent>,
     nft_mint: Pubkey,
     metadata_uri: String,
-    seller_affiliate_bps: u16,
     collection_mint: Option<Pubkey>,
 ) -> Result<()>
 ```
 
+**Affiliate System**: Commission is calculated automatically from the affiliate's tier (based on total_sales) + bonus_bps. Affiliate accounts are passed as optional accounts in the context, not as instruction parameters.
+
+### Register Affiliate Instruction
+
+```rust
+pub fn register_affiliate(
+    ctx: Context<RegisterAffiliate>,
+    referrer: Option<Pubkey>,
+) -> Result<()>
+```
+
+Explicitly registers an affiliate account with optional referrer. Accounts auto-initialize on first commission if not registered, so this is optional.
+
+### Set Affiliate Bonus Instruction
+
+```rust
+pub fn set_affiliate_bonus(
+    ctx: Context<SetAffiliateBonus>,
+    bonus_bps: u16,
+) -> Result<()>
+```
+
+Authority or manager can set custom bonus rate for specific affiliates (special deals, promotions).
+
 ### Fee Distribution Logic
 
 ```rust
-// Calculate affiliate commission
-let affiliate_fee = total_fee * seller_affiliate_bps / 10_000;
-let remaining_fee = total_fee - affiliate_fee;
+// Calculate affiliate commission from tier + bonus (auto-calculated)
+let commission_bps = affiliate_account.get_commission_bps(protocol_config.max_affiliate_bps);
+let affiliate_fee = total_fee * commission_bps / 10_000;
 
-// Transfer to seller (supports 0 balance)
-**seller.lamports() += affiliate_fee;
+// Calculate referrer commission (5% of affiliate commission)
+let referrer_fee = affiliate_fee * 500 / 10_000;  // 5%
+
+// Remaining fee after affiliate and referrer
+let remaining_fee = total_fee - affiliate_fee - referrer_fee;
 
 // Distribute remaining to treasuries
 protocol_fee = remaining_fee * protocol_bps / 10_000;
@@ -227,10 +253,34 @@ pub struct PartnerCollectionAccount {
 // PDA derivation: seeds = [b"partner", collection_mint.as_ref()]
 ```
 
+### Affiliate Account
+
+```rust
+#[account]
+pub struct AffiliateAccount {
+    pub affiliate: Pubkey,           // Affiliate wallet address
+    pub total_sales: u64,            // Total agent sales (determines tier)
+    pub total_revenue: u64,          // Total commission earned (lamports)
+    pub referral_count: u64,         // Number of direct referrals
+    pub referree_sales: u64,         // Sales made by referrals
+    pub referree_revenue: u64,       // Revenue from referral commissions
+    pub referrer: Option<Pubkey>,    // Who referred this affiliate
+    pub created_at: i64,             // Registration timestamp
+    pub bonus_bps: u16,              // Custom bonus rate (authority-set)
+    pub bump: u8,                    // PDA bump seed
+}
+
+// PDA derivation: seeds = [b"affiliate", affiliate.as_ref()]
+
+// Tier calculation based on total_sales:
+// Bronze: 0-99, Silver: 100-499, Gold: 500-1,999, Platinum: 2,000-9,999, Diamond: 10,000+
+```
+
 ### Create Agent Context
 
 ```rust
 #[derive(Accounts)]
+#[instruction(nft_mint: Pubkey)]
 pub struct CreateAgent<'info> {
     #[account(
         init,
@@ -244,39 +294,64 @@ pub struct CreateAgent<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     
-    /// NFT token account owned by the user
+    /// NFT token account - validates ownership
     #[account(
         constraint = nft_token_account.mint == nft_mint,
         constraint = nft_token_account.owner == owner.key(),
         constraint = nft_token_account.amount == 1
     )]
-    pub nft_token_account: Account<'info, TokenAccount>,
-    
-    /// NFT metadata account
-    pub nft_metadata: Account<'info, MetadataAccount>,
+    pub nft_token_account: InterfaceAccount<'info, TokenAccount>,
     
     /// Protocol configuration
     #[account(
         mut,
         seeds = [b"protocol_config"],
         bump,
-        constraint = !protocol_config.paused
+        constraint = !protocol_config.paused @ MainframeError::ProtocolPaused
     )]
     pub protocol_config: Account<'info, ProtocolConfig>,
     
-    // Fee distribution accounts
-    #[account(mut)]
-    pub protocol_treasury: SystemAccount<'info>,
-    #[account(mut)]
-    pub validator_treasury: SystemAccount<'info>,
-    #[account(mut)]
-    pub network_treasury: SystemAccount<'info>,
+    /// Fee distribution accounts
+    #[account(mut, constraint = protocol_treasury.key() == protocol_config.protocol_treasury)]
+    /// CHECK: Validated by protocol_config constraint
+    pub protocol_treasury: AccountInfo<'info>,
     
-    /// Optional seller account that receives affiliate fee
-    #[account(mut)]
-    pub seller: Option<AccountInfo<'info>>,
+    #[account(mut, constraint = validator_treasury.key() == protocol_config.validator_treasury)]
+    /// CHECK: Validated by protocol_config constraint
+    pub validator_treasury: AccountInfo<'info>,
     
-    pub token_metadata_program: Program<'info, Metadata>,
+    #[account(mut, constraint = network_treasury.key() == protocol_config.network_treasury)]
+    /// CHECK: Validated by protocol_config constraint
+    pub network_treasury: AccountInfo<'info>,
+    
+    /// Optional affiliate wallet (receives commission)
+    #[account(mut)]
+    /// CHECK: Any valid wallet can be an affiliate
+    pub affiliate: Option<AccountInfo<'info>>,
+    
+    /// Optional affiliate account PDA (auto-initialized if needed)
+    #[account(mut)]
+    /// CHECK: PDA validated in processor [b"affiliate", affiliate]
+    pub affiliate_account: Option<AccountInfo<'info>>,
+    
+    /// Optional referrer wallet (receives 5% if affiliate has referrer)
+    #[account(mut)]
+    /// CHECK: Any valid wallet can receive referrer commission
+    pub referrer: Option<AccountInfo<'info>>,
+    
+    /// Optional referrer's affiliate account PDA
+    #[account(mut)]
+    /// CHECK: PDA validated in processor [b"affiliate", referrer]
+    pub referrer_account: Option<AccountInfo<'info>>,
+    
+    /// Optional partner collection account for discount validation
+    /// CHECK: PDA validated in processor [b"partner", collection_mint]
+    pub partner_account: Option<Account<'info, PartnerCollectionAccount>>,
+    
+    /// Optional Metaplex metadata account for collection verification
+    /// CHECK: Validated in processor when collection_mint provided
+    pub nft_metadata: Option<AccountInfo<'info>>,
+    
     pub system_program: Program<'info, System>,
 }
 ```
@@ -336,6 +411,42 @@ pub struct AgentTransferred {
     pub nft_mint: Pubkey,
     pub old_owner: Pubkey,
     pub new_owner: Pubkey,
+    pub timestamp: i64,
+}
+```
+
+### AffiliateRegistered Event
+
+```rust
+#[event]
+pub struct AffiliateRegistered {
+    pub affiliate: Pubkey,
+    pub referrer: Option<Pubkey>,
+    pub timestamp: i64,
+}
+```
+
+### TierUpgraded Event
+
+```rust
+#[event]
+pub struct TierUpgraded {
+    pub affiliate: Pubkey,
+    pub old_tier: u8,              // 0=Bronze, 1=Silver, 2=Gold, 3=Platinum, 4=Diamond
+    pub new_tier: u8,
+    pub total_sales: u64,
+    pub timestamp: i64,
+}
+```
+
+### AffiliateBonusSet Event
+
+```rust
+#[event]
+pub struct AffiliateBonusSet {
+    pub affiliate: Pubkey,
+    pub bonus_bps: u16,
+    pub set_by: Pubkey,
     pub timestamp: i64,
 }
 ```
@@ -404,178 +515,20 @@ Tests automatically clone required programs (Metaplex Token Metadata) from mainn
 
 ---
 
-## TypeScript Integration Examples
+## SDK Integration
 
-### PDA Derivation
+For TypeScript/JavaScript integration, use the official Mainframe SDK:
 
-```typescript
-import { PublicKey } from '@solana/web3.js';
+**[@maikers/mainframe-sdk](https://github.com/maikershq/maikers-mainframe-sdk)** - Complete TypeScript SDK with:
+- Transaction building and signing
+- PDA derivation and account fetching
+- Event monitoring
+- Fee calculation
+- Error handling
+- Encryption utilities
+- Storage integration
 
-export function deriveAgentPDA(nftMint: PublicKey, programId: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('agent'), nftMint.toBuffer()],
-    programId
-  );
-}
-
-export function deriveProtocolConfigPDA(programId: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('protocol_config')],
-    programId
-  );
-}
-```
-
-### Building Transactions
-
-```typescript
-import * as anchor from '@coral-xyz/anchor';
-
-async function buildCreateAgentTransaction(
-  program: anchor.Program,
-  nftMint: PublicKey,
-  metadataUri: string,
-  userWallet: PublicKey
-): Promise<Transaction> {
-  const [agentPDA] = deriveAgentPDA(nftMint, program.programId);
-  const [protocolConfigPDA] = deriveProtocolConfigPDA(program.programId);
-  
-  const nftTokenAccount = await getAssociatedTokenAddress(nftMint, userWallet);
-  
-  const [metadataAccount] = PublicKey.findProgramAddressSync(
-    [Buffer.from('metadata'), TOKEN_METADATA_PROGRAM_ID.toBuffer(), nftMint.toBuffer()],
-    TOKEN_METADATA_PROGRAM_ID
-  );
-  
-  return await program.methods
-    .createAgent(nftMint, metadataUri)
-    .accounts({
-      agentAccount: agentPDA,
-      owner: userWallet,
-      nftTokenAccount,
-      nftMetadata: metadataAccount,
-      protocolConfig: protocolConfigPDA,
-      systemProgram: SystemProgram.programId,
-    })
-    .transaction();
-}
-```
-
-### Reading Account Data
-
-```typescript
-interface AgentAccount {
-  nftMint: PublicKey;
-  owner: PublicKey;
-  collectionMint?: PublicKey;
-  metadataUri: string;
-  status: AgentStatus;
-  activatedAt: number;
-  updatedAt: number;
-  version: number;
-}
-
-enum AgentStatus {
-  Active = 0,
-  Paused = 1,
-  Closed = 2
-}
-
-async function getAgentAccount(
-  program: anchor.Program,
-  nftMint: PublicKey
-): Promise<AgentAccount | null> {
-  try {
-    const [agentPDA] = deriveAgentPDA(nftMint, program.programId);
-    const account = await program.account.agentAccount.fetch(agentPDA);
-    return account as AgentAccount;
-  } catch (error) {
-    return null;
-  }
-}
-```
-
-### Event Monitoring
-
-```typescript
-class ProgramEventMonitor {
-  private connection: Connection;
-  private programId: PublicKey;
-  private listeners: Map<string, (event: any) => void> = new Map();
-
-  constructor(connection: Connection, programId: PublicKey) {
-    this.connection = connection;
-    this.programId = programId;
-  }
-
-  async subscribeToEvents(): Promise<void> {
-    this.connection.onLogs(
-      this.programId,
-      (logs) => this.handleProgramLogs(logs),
-      'processed'
-    );
-  }
-
-  private handleProgramLogs(logs: Logs): void {
-    for (const log of logs.logs) {
-      const eventMatch = log.match(/Program log: (\w+): (.+)/);
-      if (eventMatch) {
-        const [, eventName, eventData] = eventMatch;
-        this.emitEvent(eventName, eventData);
-      }
-    }
-  }
-
-  onAgentCreated(callback: (event: any) => void): void {
-    this.listeners.set('AgentCreated', callback);
-  }
-}
-```
-
-### Fee Calculation
-
-```typescript
-async function calculateAgentCreationFee(
-  program: anchor.Program,
-  collectionMint?: PublicKey
-): Promise<number> {
-  const config = await getProtocolConfig(program);
-  let baseFee = config.fees.createAgent;
-  
-  if (collectionMint) {
-    if (collectionMint.equals(MAIKERS_COLLECTIBLES_MINT)) {
-      return 0;
-    }
-    
-    const partner = config.partnerCollections.find(
-      p => p.collectionMint.equals(collectionMint)
-    );
-    
-    if (partner) {
-      const discountMultiplier = (100 - partner.discountPercent) / 100;
-      baseFee = Math.floor(baseFee * discountMultiplier);
-    }
-  }
-  
-  return baseFee;
-}
-```
-
-### Error Handling
-
-```typescript
-async function handleTransactionError(error: any): Promise<void> {
-  if (error.code === 6000) {
-    throw new Error('NFT ownership verification failed. Check your wallet.');
-  } else if (error.code === 6008) {
-    throw new Error('Insufficient SOL balance for transaction fees.');
-  } else if (error.code === 6002) {
-    throw new Error('Protocol is temporarily paused. Try again later.');
-  } else {
-    throw new Error(`Transaction failed: ${error.message}`);
-  }
-}
-```
+See the SDK repository for complete integration examples and documentation.
 
 ---
 

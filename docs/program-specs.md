@@ -46,16 +46,19 @@ Benefits: Deterministic addressing, collision-resistant, efficient lookups
 
 ### Agent Lifecycle
 - **initialize_config**: Setup protocol configuration
-- **create_agent**: Link NFT to new agent
+- **create_agent**: Link NFT to new agent (with optional affiliate)
 - **update_agent_config**: Modify agent settings
 - **transfer_agent**: Transfer ownership
-- **pause_agent**: Pause operations
+- **pause_agent**: Pause/resume operations
 - **close_agent**: Permanently close
+- **close_agent_account**: Close and recover rent (protocol only)
 
 ### Protocol Management
 - **pause**: Emergency protocol pause
 - **update_fees**: Modify fee structure
+- **update_protocol_limits**: Update limits (max partners, max affiliate bps)
 - **update_treasury_distribution**: Change treasury splits
+- **update_treasury_addresses**: Change treasury addresses
 - **add_partner_collection**: Add fee discount collection
 - **remove_partner_collection**: Remove partner
 
@@ -63,6 +66,10 @@ Benefits: Deterministic addressing, collision-resistant, efficient lookups
 - **propose_authority_transfer**: Initiate 2-step transfer
 - **accept_authority_transfer**: Complete transfer
 - **cancel_authority_transfer**: Cancel pending transfer
+
+### Affiliate Program
+- **register_affiliate**: Register affiliate account with optional referrer
+- **set_affiliate_bonus**: Set custom bonus rate (authority/manager only)
 
 **See**: [Instruction Details](references.md#rust-program-examples)
 
@@ -88,13 +95,25 @@ Benefits: Deterministic addressing, collision-resistant, efficient lookups
 
 ## Events
 
-### Core Events
-- `AgentCreated`: New agent activation
+### Agent Lifecycle Events
+- `AgentCreated`: New agent activation (includes seller field)
 - `AgentUpdated`: Configuration changes
 - `AgentTransferred`: Ownership transfers
-- `AffiliatePaid`: Affiliate commission payouts
+- `AgentPaused`: Agent paused
+- `AgentResumed`: Agent resumed
+- `AgentClosed`: Agent closed
+- `AgentAccountClosed`: Agent account closed and rent recovered
 
-Events enable off-chain systems to track agent lifecycle and process affiliate earnings.
+### Affiliate Program Events
+- `AffiliatePaid`: Affiliate commission payouts
+- `AffiliateRegistered`: New affiliate registration
+- `TierUpgraded`: Affiliate tier progression
+- `AffiliateBonusSet`: Custom bonus rate set by authority
+
+### Protocol Events
+- `TreasuryAddressesUpdated`: Treasury addresses changed
+
+Events enable off-chain systems to track agent lifecycle, process affiliate earnings, and monitor protocol changes.
 
 **See**: [Event Structures](references.md#events)
 

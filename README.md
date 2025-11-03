@@ -18,7 +18,7 @@ Mainframe transforms NFTs into an autonomous AI agent.
 - **[Quick Start Guide](docs/quickstart.md)** - Get up and running quickly
 - **[Affiliate Program](docs/affiliate.md)** - Revenue sharing and referral system
 - **[System Architecture](docs/architecture.md)** - Technical system overview
-- **[Code References](docs/references.md)** - Integration examples and code samples
+- **[Code References](docs/references.md)** - Rust program structures and examples
 
 ### Technical Reference
 - **[Program Specifications](docs/program-specs.md)** - Anchor program documentation
@@ -32,10 +32,12 @@ Mainframe is a Solana Anchor program that manages agent accounts linked to NFTs 
 **Core Capabilities:**
 - Agent lifecycle management (create, update, transfer, pause, close)
 - PDA-based agent accounts with deterministic derivation
-- Tiered fee structure with collection-based discounts
-- Automatic fee distribution across treasuries
-- Affiliate revenue sharing system (15-50% commission)
-- Event emission for off-chain consumption
+- Tiered fee structure with collection-based discounts (Genesis: FREE, Partners: 25-75% off)
+- Automatic fee distribution across treasuries (Protocol, Validators, Network)
+- Affiliate revenue sharing system (15-50% tier-based commission + 5% referral bonuses)
+- Event emission for off-chain consumption (agent lifecycle, affiliate tracking, protocol changes)
+- Two-step authority transfer for security
+- Protocol-level pause mechanism
 
 See [Program Specifications](docs/program-specs.md) for detailed instruction and account documentation.
 
@@ -52,47 +54,39 @@ See [Program Specifications](docs/program-specs.md) for detailed instruction and
 
 See [Economics & Fees](docs/economics.md) for complete fee calculation logic.
 
-## 🎯 Advanced Affiliate Incentive System
+## 🎯 Affiliate Revenue Sharing System
 
 **Permissionless participation - anyone can earn by referring users!**
 
 ### ✨ Key Features
 - ✅ **Permissionless** - No pre-registration required, just provide wallet address
 - ✅ **Auto-Initialize** - First commission automatically creates your affiliate account
-- ✅ **Tier-Based Commission** - Earn 15-50% based on performance
-- ✅ **Streak Bonuses** - Up to +15% for consistent sales
-- ✅ **Milestone Rewards** - Bonuses from 0.1 SOL to 1000 SOL
-- ✅ **Multi-Level Referrals** - Earn from your referrals' sales
-- ✅ **Competition Seasons** - Win from prize pools
-- ✅ **Achievement NFTs** - Earn badges for milestones
+- ✅ **Tier-Based Commission** - Earn 15-50% based on lifetime sales performance
+- ✅ **Referral Bonuses** - Earn 5% of your referrals' commissions
+- ✅ **Custom Bonuses** - Protocol can set special rates for promotions
 - ✅ **Instant Payouts** - Commission paid on-chain in real-time
 
 ### 💰 Commission Tiers
 
-| Tier | Sales Threshold | Commission Rate | + Streak Bonus |
-|------|----------------|-----------------|----------------|
-| 🥉 Bronze | 0-99 | **15%** | up to +15% |
-| 🥈 Silver | 100-499 | **20%** | up to +15% |
-| 🥇 Gold | 500-1,999 | **30%** | up to +15% |
-| 💎 Platinum | 2,000-9,999 | **40%** | up to +15% |
-| 💎💎 Diamond | 10,000+ | **50%** | up to +15% |
+| Tier | Sales Threshold | Commission Rate |
+|------|----------------|-----------------|
+| 🥉 Bronze | 0-99 | **15%** |
+| 🥈 Silver | 100-499 | **20%** |
+| 🥇 Gold | 500-1,999 | **30%** |
+| 💎 Platinum | 2,000-9,999 | **40%** |
+| 💎💎 Diamond | 10,000+ | **50%** |
 
-### 🎁 Milestone Bonuses
+**Tier Benefits:**
+- Tiers based on lifetime sales (never decrease)
+- Automatic tier progression as you sell
+- Custom bonus rates can be added by protocol authority
 
-| Sales Milestone | Bonus Reward |
-|-----------------|--------------|
-| 10 sales | 0.1 SOL |
-| 50 sales | 1 SOL |
-| 100 sales | 5 SOL |
-| 500 sales | 50 SOL |
-| 1,000 sales | 150 SOL |
-| 5,000 sales | 1,000 SOL |
+### 🔗 Referral System
 
-### 🔗 Multi-Level Referrals
-
-- **Level 1:** Earn 10% of your direct referrals' commissions
-- **Level 2:** Earn 5% of second-level referrals' commissions
-- Build passive income streams by growing your network!
+**Single-Level Referrals** - Earn 5% of your direct referrals' commissions:
+- Register with a referrer to give them 5% of your earnings
+- Build a network and earn from your referrals' sales
+- Prevents referral chain saturation attacks
 
 ### 📊 Revenue Examples (Bronze → Diamond)
 
@@ -105,25 +99,18 @@ See [Economics & Fees](docs/economics.md) for complete fee calculation logic.
 
 *Based on 0.05 SOL standard activation fee
 
-### 🚀 Getting Started
+### 🚀 Getting Started as an Affiliate
 
 **It's dead simple:**
-1. Share your referral link: `https://mainframe.maikers.com?ref=WALLET_ADDRESS`
-2. Users create agents with your address
-3. Get paid commission instantly
-4. Your affiliate account auto-initializes
-5. Climb tiers automatically as you sell
+1. Share your wallet address with users
+2. Users create agents with your address as the affiliate
+3. Get paid commission instantly based on your tier
+4. Your affiliate account auto-initializes on first sale
+5. Climb tiers automatically as you make more sales
 
-**Optional:** Register a vanity referral code for marketing
+**Optional:** Register explicitly with a referrer to earn from their network too
 
-```typescript
-// Users just include your wallet
-await sdk.createAgent(nftMint, config, {
-  affiliate: "YourWallet..."  // That's it!
-});
-```
-
-**Ready to start earning?** See [Affiliate Documentation](docs/affiliate.md) for complete details.
+**Ready to start earning?** See [Affiliate Documentation](docs/affiliate.md) for complete details and SDK integration.
 
 ## Quick Start
 
@@ -137,8 +124,9 @@ await sdk.createAgent(nftMint, config, {
 
 **Documentation:**
 - [Quick Start Guide](docs/quickstart.md) - Complete setup and usage
-- [Code References](docs/references.md) - Integration examples and patterns
+- [Code References](docs/references.md) - Rust program structures and account examples
 - [Affiliate Program](docs/affiliate.md) - Revenue sharing implementation
+- [Program Specifications](docs/program-specs.md) - Complete instruction reference
 
 
 ## Development

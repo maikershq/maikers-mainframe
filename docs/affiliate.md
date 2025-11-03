@@ -44,6 +44,22 @@ The Mainframe affiliate program is a **permissionless, tier-based incentive syst
 
 > ⚠️ **Exception**: Protocol reserves the right to demote or ban affiliates engaging in fraudulent activity, wash trading, or violating terms of service.
 
+## Referral System
+
+**Single-Level Referrals**: Affiliates can refer new affiliates and earn 5% of their referrals' commissions.
+
+**How it works:**
+1. Affiliate A registers with referrer: `register_affiliate(referrer: Some(Affiliate_B))`
+2. When Affiliate A earns commission, Affiliate B automatically receives 5%
+3. Referrer revenue is tracked separately in `referree_revenue` field
+
+**Example:**
+- User creates agent → 0.05 SOL fee
+- Affiliate A earns 15% commission → 0.0075 SOL
+- Referrer B earns 5% of commission → 0.000375 SOL (5% of 0.0075 SOL)
+
+**Note**: Single-level only (no multi-level chains) to prevent referral saturation attacks.
+
 ## Advanced Features
 
 For comprehensive guides, see:
@@ -52,24 +68,17 @@ For comprehensive guides, see:
 
 ## Fee Distribution Model
 
-- **Affiliate Commission**: 15-50% (tier-based)
+- **Affiliate Commission**: 15-50% (tier-based + bonus)
+- **Referrer Commission**: 5% of affiliate commission (if applicable)
 - **Protocol Treasury**: 50% of remaining
 - **Validator Treasury**: 30% of remaining
 - **Network Treasury**: 20% of remaining
 
-**Example**: Bronze affiliate (15%) receives 7.5M lamports from 50M lamport fee, with remainder distributed across treasuries.
+**Example**: Bronze affiliate (15%) receives 7.5M lamports from 50M lamport fee, referrer receives 0.375M lamports (5%), remainder distributed across treasuries.
 
 ## SDK Integration
 
-**Parameters:**
-- `seller`: Affiliate wallet address (optional)
-- `affiliateBps`: Commission in basis points, 0-5000 (0-50%)
-
-**Validation:**
-- If `affiliateBps` > 0, `seller` must be provided
-- Payer must have sufficient balance for total fee
-
-**See**: [@maikers/mainframe-sdk](https://github.com/maikershq/maikers-mainframe-sdk) for integration examples
+For complete integration examples, see **[@maikers/mainframe-sdk](https://github.com/maikershq/maikers-mainframe-sdk)**
 
 ## Events
 
@@ -89,23 +98,7 @@ The `AffiliatePaid` event is emitted when affiliates receive commissions. Use th
 - Atomic execution (all-or-nothing)
 - Zero-balance accounts can receive payments
 
-## Integration Patterns
-
-Common patterns include:
-- **Referral Links**: URL-based tracking with affiliate parameter
-- **Multi-Tier Systems**: Dynamic commission rates based on affiliate tier
-- **Batch Processing**: Sequential agent activation with affiliate tracking
-
-**See**: [@maikers/mainframe-sdk](https://github.com/maikershq/maikers-mainframe-sdk) for integration examples
-
 ## Best Practices
-
-**For Integrators:**
-- Validate addresses before submission
-- Store affiliate mappings off-chain
-- Monitor `AffiliatePaid` events
-- Use reasonable defaults (15-30%)
-- Display fee transparency
 
 **For Affiliates:**
 - Use unique addresses per campaign
@@ -117,15 +110,6 @@ Common patterns include:
 - Affiliates don't increase costs
 - Support creators via referral links
 - Identical activation experience
-
-## Error Handling
-
-**Common Errors:**
-- `InvalidAffiliate`: Commission > 50%
-- `InsufficientBalance`: Payer lacks funds
-- Validation errors: Missing seller when bps > 0
-
-**See**: [@maikers/mainframe-sdk](https://github.com/maikershq/maikers-mainframe-sdk) for error handling examples
 
 ## FAQ
 

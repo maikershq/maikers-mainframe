@@ -116,24 +116,26 @@ Total Fee: 0.05 SOL (50,000,000 lamports)
 └─ Network: 0.010 SOL (20%)
 ```
 
-**Example with Bronze Affiliate (15%):**
+**Example with Bronze Affiliate (15%), no referrer:**
 ```
 Total Fee: 0.05 SOL (50,000,000 lamports)
 ├─ Bronze Affiliate: 0.0075 SOL (15%)
+├─ Referrer: 0 SOL (no referrer)
 └─ Remaining: 0.0425 SOL
    ├─ Protocol: 0.02125 SOL (50%)
    ├─ Validators: 0.01275 SOL (30%)
    └─ Network: 0.0085 SOL (20%)
 ```
 
-**Example with Diamond Affiliate (50%):**
+**Example with Diamond Affiliate (50%), with referrer:**
 ```
 Total Fee: 0.05 SOL (50,000,000 lamports)
 ├─ Diamond Affiliate: 0.025 SOL (50%)
-└─ Remaining: 0.025 SOL
-   ├─ Protocol: 0.0125 SOL (50%)
-   ├─ Validators: 0.0075 SOL (30%)
-   └─ Network: 0.005 SOL (20%)
+├─ Referrer: 0.00125 SOL (5% of affiliate commission)
+└─ Remaining: 0.02375 SOL
+   ├─ Protocol: 0.011875 SOL (50%)
+   ├─ Validators: 0.007125 SOL (30%)
+   └─ Network: 0.004750 SOL (20%)
 ```
 
 ### Distribution Implementation
