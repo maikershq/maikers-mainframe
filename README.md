@@ -170,6 +170,25 @@ See [System Architecture](docs/architecture.md) and [Security Model](docs/securi
 
 Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 
+## Mainnet Deployment
+
+**🚀 Live on Solana Mainnet**
+
+- **Program ID:** `mnfm211AwTDA8fGvPezYs3jjxAXgoucHGuTMUbjFssE`
+- **Status:** ✅ Production
+- **Deployment Date:** 2025-11-02
+- **Version:** v1.0.0
+
+**📋 Deployment Documentation:**
+- [VERIFICATION_STATUS.md](VERIFICATION_STATUS.md) - Complete deployment details and verification status
+- [MAINNET_DEPLOYMENT_CHECKLIST.md](MAINNET_DEPLOYMENT_CHECKLIST.md) - Deployment checklist
+
+**🔍 Verification:**
+- Transaction: [View on Solscan](https://solscan.io/tx/5SQiEwMMDFxhUqhEmLyvThvUVbzpcNLHYREPHvfkCZDK75NktxyNt3BtSGQdsgWujPBdbPCoKVcbagWZxPpy375T)
+- Source Commit: `efdd0c639381df7648ef60e02c4febba381222b6`
+- Build Platform: macOS ARM64 (native build)
+- Verification Method: Manual (solana-verify incompatible due to platform difference)
+
 ## Security & Verified Builds
 
 ### Security.txt
