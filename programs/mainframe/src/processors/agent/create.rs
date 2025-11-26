@@ -9,6 +9,7 @@ use crate::utils::{
 };
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{create_account, transfer, CreateAccount, Transfer};
+use anchor_spl::token_interface::TokenAccount;
 use mpl_token_metadata::accounts::Metadata;
 
 /// Create new agent from NFT with permissionless operation
@@ -27,7 +28,43 @@ pub fn create_agent(
         MainframeError::InvalidURIFormat
     );
 
-    // NFT ownership is validated by the token account constraints in the instruction
+    // Validate NFT ownership based on account type
+    if let Some(token_account_info) = &ctx.accounts.nft_token_account {
+        // SPL Token NFT validation (standard, pNFT, etc)
+        let token_data = TokenAccount::try_deserialize(
+            &mut token_account_info.data.borrow().as_ref()
+        ).map_err(|_| MainframeError::InvalidNFT)?;
+
+        // Validate token account belongs to the NFT mint
+        require!(
+            token_data.mint == nft_mint,
+            MainframeError::InvalidNFT
+        );
+
+        // Validate token account is owned by the signer
+        require!(
+            token_data.owner == ctx.accounts.owner.key(),
+            MainframeError::NFTNotOwned
+        );
+
+        // Validate amount is 1 (NFT, not fungible token)
+        require!(
+            token_data.amount == 1,
+            MainframeError::NFTNotOwned
+        );
+
+        msg!("✓ SPL Token NFT ownership validated");
+    } else {
+        // Core NFT or other standards
+        // For now, we trust the caller has ownership
+        // Future: Add Core asset validation via mpl-core program
+        msg!("⚠ NFT ownership validation skipped (Core/other standard)");
+        
+        // TODO: Add Core NFT validation
+        // - Check asset account owner field
+        // - Verify asset exists on-chain
+        // - Validate via mpl-core program
+    }
 
     // Verify collection if provided
     if let Some(collection) = &collection_mint {

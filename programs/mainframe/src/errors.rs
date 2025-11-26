@@ -97,4 +97,7 @@ pub enum MainframeError {
 
     #[msg("Treasury account mismatch - provided account doesn't match pubkey")]
     TreasuryAccountMismatch,
+
+    #[msg("Invalid agent status for this operation")]
+    InvalidAgentStatus,
 }

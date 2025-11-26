@@ -89,6 +89,24 @@ pub mod mainframe {
         processors::agent::close_agent_account(ctx)
     }
 
+    /// Migrate existing agent to new status system
+    /// Sets status = Pending for agents without Agent-NFT
+    pub fn migrate_agent(ctx: Context<MigrateAgent>) -> Result<()> {
+        processors::agent::migrate_agent(ctx)
+    }
+
+    /// Activate agent after Agent-NFT is minted
+    /// Called by node after successful minting
+    pub fn activate_agent(ctx: Context<ActivateAgent>, agent_nft: Pubkey) -> Result<()> {
+        processors::agent::activate_agent(ctx, agent_nft)
+    }
+
+    /// Close legacy agent (old format without agent_nft field)
+    /// One-time cleanup for pre-Agent-NFT system agents
+    pub fn close_legacy_agent(ctx: Context<CloseLegacyAgent>) -> Result<()> {
+        processors::agent::close_legacy_agent(ctx)
+    }
+
     /// Pause/unpause protocol
     pub fn pause(ctx: Context<Pause>, paused: bool) -> Result<()> {
         processors::config::pause(ctx, paused)

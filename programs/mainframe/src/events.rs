@@ -60,6 +60,15 @@ pub struct AgentAccountClosed {
 }
 
 #[event]
+pub struct AgentActivated {
+    pub agent_account: Pubkey,
+    pub nft_mint: Pubkey,
+    pub agent_nft: Pubkey,
+    pub owner: Pubkey,
+    pub timestamp: i64,
+}
+
+#[event]
 pub struct AffiliatePaid {
     pub agent_account: Pubkey,
     pub seller: Pubkey,

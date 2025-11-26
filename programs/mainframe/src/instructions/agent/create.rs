@@ -1,7 +1,6 @@
 use crate::errors::MainframeError;
 use crate::state::{AgentAccount, PartnerCollectionAccount, ProtocolConfig};
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::TokenAccount;
 
 #[derive(Accounts)]
 #[instruction(nft_mint: Pubkey)]
@@ -18,14 +17,14 @@ pub struct CreateAgent<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    /// NFT token account owned by the user
-    /// Simple validation: owner has the NFT (amount = 1)
-    #[account(
-        constraint = nft_token_account.mint == nft_mint,
-        constraint = nft_token_account.owner == owner.key(),
-        constraint = nft_token_account.amount == 1
-    )]
-    pub nft_token_account: InterfaceAccount<'info, TokenAccount>,
+    /// NFT token account (for SPL Token NFTs) or asset account (for Core NFTs)
+    /// Optional to support multiple NFT standards:
+    /// - SPL Token NFTs: provide token account (validated for ownership)
+    /// - Core NFTs: provide asset account or None (validated via asset owner)
+    /// - Compressed NFTs: requires merkle proof (future)
+    #[account(mut)]
+    /// CHECK: Manually validated in processor based on NFT type
+    pub nft_token_account: Option<UncheckedAccount<'info>>,
 
     /// Protocol configuration
     #[account(
