@@ -429,17 +429,15 @@ async function initializeConfig(config: Config): Promise<void> {
 
     const configParams = {
       genesisCollectionMint: genesisCollection.publicKey,
-      maxPartnerCollections: new anchor.BN(config.protocolLimits.maxPartnerCollections),
+      maxPartnerCollections: new anchor.BN(
+        config.protocolLimits.maxPartnerCollections
+      ),
       maxAffiliateBps: config.protocolLimits.maxAffiliateBps,
       manager: authority.publicKey,
     };
 
     const tx = await program.methods
-      .initializeConfig(
-        fees,
-        treasuryParams,
-        configParams
-      )
+      .initializeConfig(fees, treasuryParams, configParams)
       .accountsPartial({
         protocolConfig: protocolConfigPDA,
         authority: authority.publicKey,
