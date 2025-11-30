@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct AgentAccount {
-    /// The NFT mint associated with this agent
+    /// The NFT mint associated with this agent (source NFT)
     pub nft_mint: Pubkey,
     /// The owner of the NFT and agent
     pub owner: Pubkey,
@@ -11,6 +11,8 @@ pub struct AgentAccount {
     pub collection_mint: Option<Pubkey>,
     /// URI pointing to secure JSON metadata
     pub metadata_uri: String,
+    /// Minted Agent-NFT representing this agent (None = Pending)
+    pub agent_nft: Option<Pubkey>,
     /// Agent operational status
     pub status: AgentStatus,
     /// Timestamp of activation
@@ -29,6 +31,7 @@ impl AgentAccount {
         32 + // owner
         1 + 32 + // collection_mint (Option<Pubkey>)
         4 + MAX_METADATA_URI_LENGTH + // metadata_uri (String)
+        1 + 32 + // agent_nft (Option<Pubkey>) - NEW
         1 + // status (enum)
         8 + // activated_at
         8 + // updated_at
@@ -36,9 +39,11 @@ impl AgentAccount {
         32; // reserved
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 pub enum AgentStatus {
-    Active,
-    Paused,
-    Closed,
+    Active,  // 0 - Agent-NFT minted and running (legacy agents)
+    Paused,  // 1 - Temporarily stopped
+    Closed,  // 2 - Permanently closed
+    Pending, // 3 - Waiting for Agent-NFT to be minted
+    Error,   // 4 - Validation or minting failed
 }

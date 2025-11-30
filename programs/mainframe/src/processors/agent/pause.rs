@@ -5,7 +5,25 @@ use crate::state::AgentStatus;
 use anchor_lang::prelude::*;
 
 /// Pause or resume agent
+/// Can be called by agent owner OR protocol authority
 pub fn pause_agent(ctx: Context<PauseAgent>) -> Result<()> {
+    let agent = &mut ctx.accounts.agent_account;
+
+    // Verify signer is owner OR protocol authority (dual control)
+    let is_owner = agent.owner == ctx.accounts.owner.key();
+    let is_authority = ctx.accounts.protocol_config.authority == ctx.accounts.owner.key();
+
+    require!(is_owner || is_authority, MainframeError::Unauthorized);
+
+    msg!("Pause/Resume agent...");
+    msg!(
+        "  Signer: {}",
+        if is_owner {
+            "Owner"
+        } else {
+            "Protocol Authority"
+        }
+    );
     // Toggle agent pause status
     let is_paused = match ctx.accounts.agent_account.status {
         AgentStatus::Active => {

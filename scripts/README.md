@@ -1,209 +1,309 @@
-# Mainframe Build & Security Scripts
+# Mainframe Scripts
 
-Scripts for verified builds and security.txt verification.
+## 🚨 DEPLOYMENT POLICY
 
-## Scripts
+**ALWAYS DEPLOY TO DEVNET FIRST, THEN MAINNET!**
 
-### 🔨 `verified-build.sh`
-
-Performs a reproducible build with complete security verification.
-
-**What it does:**
-1. Cleans previous builds
-2. Builds the program with reproducible settings
-3. Extracts and verifies security.txt from binary
-4. Validates all required security fields
-5. Generates build verification data with hashes
-
-**Usage:**
 ```bash
-./scripts/verified-build.sh
+# Use the deployment script (handles devnet → mainnet flow)
+./scripts/deploy.sh
 
-# Or via yarn
-yarn build:verified
+# Or manual deployment:
+# 1. Devnet first
+anchor build
+solana program deploy target/deploy/mainframe.so --url devnet --program-id mnfm...
+# Test on devnet
+# 2. Then mainnet (only if devnet works)
+solana program deploy target/deploy/mainframe.so --url mainnet-beta --program-id mnfm...
+```
+
+---
+
+## Event Monitoring Scripts
+
+### 1. Fetch Historical Events
+
+Fetches and decodes past events from the program.
+
+```bash
+# Fetch last 100 events on mainnet
+yarn ts-node scripts/fetch-events.ts
+
+# Fetch events on devnet
+yarn ts-node scripts/fetch-events.ts --network devnet
+
+# Fetch specific event type
+yarn ts-node scripts/fetch-events.ts --event AgentCreated
+
+# Fetch with custom limit
+yarn ts-node scripts/fetch-events.ts --limit 500
+
+# Fetch events before a signature (pagination)
+yarn ts-node scripts/fetch-events.ts --before <signature>
+```
+
+**Examples:**
+```bash
+# Get last 50 agent creations on mainnet
+yarn ts-node scripts/fetch-events.ts --event AgentCreated --limit 50
+
+# Get affiliate registrations on devnet
+yarn ts-node scripts/fetch-events.ts --network devnet --event AffiliateRegistered
+
+# Get all recent events
+yarn ts-node scripts/fetch-events.ts --limit 500
 ```
 
 **Output:**
-- Built binary: `target/deploy/mainframe.so`
-- Verification file: `target/build-verification.json`
-- Security.txt display in console
+```
+🔍 Fetching events from mainnet...
+📊 Limit: 100
 
-### 🔍 `check-security-txt.sh`
+📜 Fetching transaction signatures...
+✅ Found 45 transactions
 
-Verifies security.txt in local binary or deployed program.
+📊 Found 32 events
 
-**Usage:**
+═══════════════════════════════════════════════════════
+
+1. AgentCreated
+   Signature: 5xorje...
+   Slot: 380288640
+   Time: 2024-11-15T18:00:00.000Z
+   Data:
+     Agent: 8FzQ...
+     NFT Mint: pszD...
+     Owner: 7ytz...
+     Collection: mA1K...
+     Version: 1
+
+2. AffiliatePaid
+   Signature: 3NATX...
+   Slot: 380288650
+   Time: 2024-11-15T18:00:10.000Z
+   Data:
+     Agent: 8FzQ...
+     Seller: DPmf...
+     Amount: 0.0075 SOL
+     Rate: 1500 bps
+
+═══════════════════════════════════════════════════════
+
+✅ Total: 32 events
+
+📈 Summary:
+   AgentCreated: 25
+   AffiliatePaid: 5
+   AffiliateRegistered: 2
+```
+
+---
+
+### 2. Monitor Real-Time Events
+
+Streams events as they happen.
+
 ```bash
-# Check local binary
-./scripts/check-security-txt.sh
+# Monitor mainnet events
+./scripts/monitor-events.sh mainnet
 
-# Check deployed program
-./scripts/check-security-txt.sh <PROGRAM_ID>
-
-# Or via yarn
-yarn check:security
-yarn check:security C7LUs9yKERYLs9TBnTVjoL7rtWQGHB7BFvKhjrS5Q6Ze
+# Monitor devnet events
+./scripts/monitor-events.sh devnet
 ```
 
-**Validates:**
-- ✓ Contact information
-- ✓ Security policy
-- ✓ Source code URL
-- ✓ Source revision (if present)
+**Output:**
+```
+🔍 Monitoring Mainframe events on mainnet
+📡 RPC: https://api.mainnet-beta.solana.com
+📋 Program: mnfm211AwTDA8fGvPezYs3jjxAXgoucHGuTMUbjFssE
 
-## Requirements
+Watching for events... (Press Ctrl+C to stop)
+═══════════════════════════════════════════════════════
 
-### Install solana-security-txt CLI
-
-```bash
-cargo install solana-security-txt
+Transaction executed in slot 380288640:
+  Signature: 5xorjedvVyfZa4Xq2gucanENDCkVn32ccnqevB7BgeUTyrp95BWYipBzyuF5qgFF6KnryfYzj5dGbB7N2i6B7tZo
+  Status: Ok
+  Log Messages:
+    Program mnfm211AwTDA8fGvPezYs3jjxAXgoucHGuTMUbjFssE invoke [1]
+    Program logged: "Instruction: CreateAgent"
+    Program logged: "✓ SPL Token NFT ownership validated"
+    Program logged: "Event: AgentCreated"
+    Program mnfm211AwTDA8fGvPezYs3jjxAXgoucHGuTMUbjFssE success
 ```
 
-The verified-build script will auto-install if missing.
+---
 
-## Build Verification Workflow
+## Event Types
 
-```
-┌─────────────────────────────────────────┐
-│ 1. Run verified build                   │
-│    $ yarn build:verified                │
-└──────────────┬──────────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────────┐
-│ 2. Review security.txt output           │
-│    Check all fields are correct         │
-└──────────────┬──────────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────────┐
-│ 3. Save binary hash                     │
-│    From: target/build-verification.json │
-└──────────────┬──────────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────────┐
-│ 4. Deploy program                       │
-│    $ anchor deploy                      │
-└──────────────┬──────────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────────┐
-│ 5. Verify on-chain                      │
-│    $ yarn check:security <PROGRAM_ID>   │
-└─────────────────────────────────────────┘
-```
+The Mainframe program emits these events:
 
-## Build Verification File
+### Agent Events
+- **AgentCreated** - New agent created
+- **AgentUpdated** - Agent configuration updated
+- **AgentTransferred** - Agent ownership transferred
+- **AgentPaused** - Agent paused
+- **AgentResumed** - Agent resumed
+- **AgentClosed** - Agent permanently closed
+- **AgentAccountClosed** - Agent account closed (rent recovery)
 
-After running `verified-build.sh`, you'll get `target/build-verification.json`:
+### Affiliate Events
+- **AffiliateRegistered** - New affiliate registered
+- **AffiliatePaid** - Affiliate received commission
+- **AffiliateBonusSet** - Custom bonus rate set
+- **TierUpgraded** - Affiliate tier upgraded
 
-```json
+### Protocol Events
+- **TreasuryAddressesUpdated** - Treasury addresses changed
+
+---
+
+## Event Data Structures
+
+### AgentCreated
+```typescript
 {
-  "program_id": "4J4x...",
-  "git_commit": "abc123...",
-  "git_branch": "main",
-  "build_date": "2025-10-31 12:00:00 UTC",
-  "binary_hash": "sha256...",
-  "binary_path": "target/deploy/mainframe.so",
-  "anchor_version": "0.31.1",
-  "rust_version": "1.75.0",
-  "security_txt_verified": true
+  agentAccount: PublicKey,
+  nftMint: PublicKey,
+  owner: PublicKey,
+  collectionMint: PublicKey | null,
+  metadataUri: string,
+  seller: PublicKey | null,
+  timestamp: i64,
+  version: u64
 }
 ```
 
-**Use this for:**
-- 📝 Release notes
-- 🔐 Verified build submission (Solana Verify, OtterSec)
-- 📊 Audit trail
-- 🏷️ Git tags
-
-## Integration with Solana Verify
-
-To submit for verified builds:
-
-1. Run verified build:
-   ```bash
-   yarn build:verified
-   ```
-
-2. Note the binary hash from `target/build-verification.json`
-
-3. Submit to Solana Verify:
-   ```bash
-   # Using Solana Verify CLI
-   solana-verify verify-from-repo \
-     --program-id C7LUs9yKERYLs9TBnTVjoL7rtWQGHB7BFvKhjrS5Q6Ze \
-     --repo https://github.com/maikershq/maikers-mainframe \
-     --commit-hash <GIT_COMMIT>
-   ```
-
-## CI/CD Integration
-
-Add to GitHub Actions workflow:
-
-```yaml
-- name: Verified Build
-  run: |
-    cd maikers-mainframe
-    ./scripts/verified-build.sh
-    
-- name: Upload Build Artifacts
-  uses: actions/upload-artifact@v3
-  with:
-    name: build-verification
-    path: target/build-verification.json
+### AffiliatePaid
+```typescript
+{
+  agentAccount: PublicKey,
+  seller: PublicKey,
+  affiliateAmount: u64,      // lamports
+  affiliateBps: u16,         // basis points
+  timestamp: i64
+}
 ```
+
+### AffiliateRegistered
+```typescript
+{
+  affiliate: PublicKey,
+  referrer: PublicKey | null,
+  timestamp: i64
+}
+```
+
+### TierUpgraded
+```typescript
+{
+  affiliate: PublicKey,
+  oldTier: u8,
+  newTier: u8,
+  totalSales: u64,
+  timestamp: i64
+}
+```
+
+---
+
+## Filtering Examples
+
+### Get All Agent Creations
+```bash
+yarn ts-node scripts/fetch-events.ts --event AgentCreated --limit 1000
+```
+
+### Get Recent Affiliate Payments
+```bash
+yarn ts-node scripts/fetch-events.ts --event AffiliatePaid --limit 100
+```
+
+### Get Events from Specific Time Range
+```bash
+# Get last 500 events
+yarn ts-node scripts/fetch-events.ts --limit 500
+
+# Then get next 500 (pagination)
+yarn ts-node scripts/fetch-events.ts --limit 500 --before <last_signature>
+```
+
+---
+
+## Use Cases
+
+### Analytics
+- Track total agents created
+- Monitor affiliate earnings
+- Analyze fee revenue
+- Track partner collection usage
+
+### Debugging
+- Verify events emitted correctly
+- Check event data accuracy
+- Monitor for anomalies
+
+### Monitoring
+- Real-time agent creation tracking
+- Affiliate performance monitoring
+- Protocol health checks
+
+---
+
+## Requirements
+
+### Dependencies
+```bash
+cd maikers-mainframe
+yarn install
+```
+
+### Environment Variables (Optional)
+```bash
+# Custom RPC endpoint
+export SOLANA_RPC_URL="https://mainnet.helius-rpc.com/..."
+
+# Or use default public RPCs
+# Mainnet: https://api.mainnet-beta.solana.com
+# Devnet: https://api.devnet.solana.com
+```
+
+---
 
 ## Troubleshooting
 
-### `solana-security-txt: command not found`
+### "No events found"
+- Program might not have any recent transactions
+- Try increasing `--limit`
+- Check if program ID is correct
 
-Install the CLI:
+### "RPC rate limit"
+- Use a private RPC endpoint
+- Reduce `--limit`
+- Add delays between fetches
+
+### "TypeScript errors"
+- Run `anchor build` first to generate types
+- Ensure `target/types/mainframe.ts` exists
+
+---
+
+## Advanced Usage
+
+### Export to CSV
 ```bash
-cargo install solana-security-txt
+yarn ts-node scripts/fetch-events.ts --event AgentCreated | \
+  grep "Agent:" | \
+  awk '{print $2}' > agent_addresses.txt
 ```
 
-### `Binary not found: target/deploy/mainframe.so`
-
-Run a build first:
+### Count Events by Type
 ```bash
-anchor build
-# or
-yarn build:verified
+yarn ts-node scripts/fetch-events.ts --limit 1000 | \
+  grep "Summary:" -A 20
 ```
 
-### `Failed to extract security.txt`
-
-1. Check that `solana-security-txt` is in `Cargo.toml`
-2. Verify the macro is in `src/lib.rs`
-3. Rebuild the program
-
-### On-chain verification fails
-
-1. Ensure program is deployed
-2. Check program ID is correct
-3. Verify you're on the right network (devnet/mainnet)
-
-## Security Best Practices
-
-✅ **DO:**
-- Run verified build before each deployment
-- Save build-verification.json for each release
-- Tag releases with git commit hash
-- Keep security.txt contacts up to date
-- Submit to Solana Verify for transparency
-
-❌ **DON'T:**
-- Deploy without running verified build
-- Modify binary after build verification
-- Deploy from unknown builds
-- Skip security.txt validation
-
-## Support
-
-Questions about these scripts?
-- 📧 Email: security@maikers.com
-- 💬 Discord: https://discord.gg/maikers
-- 🐦 Twitter: @TheMaikers
-
+### Find Specific Agent
+```bash
+yarn ts-node scripts/fetch-events.ts --event AgentCreated | \
+  grep -A 5 "NFT Mint: pszD291..."
+```

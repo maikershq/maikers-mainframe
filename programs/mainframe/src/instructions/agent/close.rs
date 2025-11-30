@@ -9,7 +9,6 @@ pub struct CloseAgent<'info> {
         mut,
         seeds = [b"agent", agent_account.nft_mint.as_ref()],
         bump,
-        constraint = agent_account.owner == owner.key() @ MainframeError::Unauthorized,
         constraint = agent_account.status != AgentStatus::Closed @ MainframeError::AgentAlreadyClosed
     )]
     pub agent_account: Account<'info, AgentAccount>,

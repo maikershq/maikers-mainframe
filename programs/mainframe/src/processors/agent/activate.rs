@@ -28,3 +28,5 @@ pub fn activate_agent(ctx: Context<ActivateAgent>, agent_nft: Pubkey) -> Result<
     msg!("Agent activated with Agent-NFT: {}", agent_nft);
     Ok(())
 }
+
+

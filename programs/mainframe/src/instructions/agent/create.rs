@@ -1,6 +1,7 @@
 use crate::errors::MainframeError;
 use crate::state::{AgentAccount, PartnerCollectionAccount, ProtocolConfig};
 use anchor_lang::prelude::*;
+use mpl_core::ID as CORE_PROGRAM_ID;
 
 #[derive(Accounts)]
 #[instruction(nft_mint: Pubkey)]
@@ -17,14 +18,26 @@ pub struct CreateAgent<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    /// NFT token account (for SPL Token NFTs) or asset account (for Core NFTs)
-    /// Optional to support multiple NFT standards:
-    /// - SPL Token NFTs: provide token account (validated for ownership)
-    /// - Core NFTs: provide asset account or None (validated via asset owner)
-    /// - Compressed NFTs: requires merkle proof (future)
+    /// NFT token account for SPL Token NFTs (standard, pNFT)
+    /// - Validates mint, owner, and amount = 1
     #[account(mut)]
-    /// CHECK: Manually validated in processor based on NFT type
+    /// CHECK: Manually validated in processor if provided
     pub nft_token_account: Option<UncheckedAccount<'info>>,
+
+    /// Core NFT asset account (alternative to token account)
+    /// - Owner validated in processor (client pre-validates to prevent errors)
+    #[account(mut)]
+    /// CHECK: Owner validated in processor + client-side pre-validation
+    pub core_asset: Option<UncheckedAccount<'info>>,
+
+    /// Core NFT collection (for Core collection verification)
+    /// CHECK: Manually validated in processor if provided
+    pub core_collection: Option<UncheckedAccount<'info>>,
+
+    /// Core program (required if core_asset provided)
+    #[account(address = CORE_PROGRAM_ID)]
+    /// CHECK: Validated by address constraint
+    pub core_program: Option<UncheckedAccount<'info>>,
 
     /// Protocol configuration
     #[account(

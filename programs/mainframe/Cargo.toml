@@ -22,4 +22,5 @@ anchor-lang = "0.31.1"
 anchor-spl = "0.31.1"
 solana-security-txt = "1.1.1"
 mpl-token-metadata = "5.0.1"
+mpl-core = "0.9.1"
 
