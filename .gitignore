@@ -13,3 +13,4 @@ test-programs/*.so
 production/
 backups/
 deployment-log.txt
+.env.ops
