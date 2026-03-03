@@ -115,20 +115,41 @@ async function loadOrCreateKeypair(
   name: string,
   keypairPath?: string
 ): Promise<Keypair> {
+  // Sanitize name to prevent path traversal
+  // Only allow alphanumeric characters, hyphens, and underscores
+  if (!/^[a-zA-Z0-9-_]+$/.test(name)) {
+    throw new Error(`Invalid keypair name: ${name}`);
+  }
+
   // First, check if a specific keypair path is provided
-  if (keypairPath && fs.existsSync(keypairPath)) {
-    console.log(`Loading ${name} keypair from: ${keypairPath}`);
-    const keypairData = JSON.parse(fs.readFileSync(keypairPath, "utf8"));
-    return Keypair.fromSecretKey(new Uint8Array(keypairData));
+  if (keypairPath) {
+    // Resolve to absolute path to prevent traversal attacks via relative paths
+    const resolvedPath = path.resolve(keypairPath);
+
+    if (fs.existsSync(resolvedPath)) {
+      console.log(`Loading ${name} keypair from: ${resolvedPath}`);
+      const keypairData = JSON.parse(fs.readFileSync(resolvedPath, "utf8"));
+      return Keypair.fromSecretKey(new Uint8Array(keypairData));
+    }
   }
 
   // If no specific path provided, check for existing keypair in keys directory
   const keysDir = path.join(__dirname, "..", "keys");
   const defaultKeyPath = path.join(keysDir, `${name}.json`);
 
-  if (fs.existsSync(defaultKeyPath)) {
-    console.log(`Loading existing ${name} keypair from: ${defaultKeyPath}`);
-    const keypairData = JSON.parse(fs.readFileSync(defaultKeyPath, "utf8"));
+  // Verify the constructed path is still within keysDir
+  const resolvedDefaultPath = path.resolve(defaultKeyPath);
+  if (!resolvedDefaultPath.startsWith(path.resolve(keysDir))) {
+    throw new Error("Path traversal detected in default key path");
+  }
+
+  if (fs.existsSync(resolvedDefaultPath)) {
+    console.log(
+      `Loading existing ${name} keypair from: ${resolvedDefaultPath}`
+    );
+    const keypairData = JSON.parse(
+      fs.readFileSync(resolvedDefaultPath, "utf8")
+    );
     return Keypair.fromSecretKey(new Uint8Array(keypairData));
   }
 
@@ -142,11 +163,11 @@ async function loadOrCreateKeypair(
   }
 
   fs.writeFileSync(
-    defaultKeyPath,
+    resolvedDefaultPath,
     JSON.stringify(Array.from(keypair.secretKey), null, 2)
   );
 
-  console.log(`${name} keypair saved to: ${defaultKeyPath}`);
+  console.log(`${name} keypair saved to: ${resolvedDefaultPath}`);
   return keypair;
 }
 
